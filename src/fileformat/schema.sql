@@ -49,6 +49,10 @@ CREATE TABLE edges (
   target_handle       TEXT,
   type                TEXT NOT NULL,
   label               TEXT,
+  color               TEXT,
+  vlan_id             INTEGER,
+  line_style          TEXT,
+  arrow_style         TEXT,
   physical_link_json  TEXT,
   created_at          TEXT NOT NULL,
   updated_at          TEXT NOT NULL

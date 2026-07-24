@@ -9,6 +9,7 @@ interface NetworkNodeShellProps {
   label: string
   subtext?: string
   selected?: boolean
+  highlighted?: boolean
   accentColor?: string
 }
 
@@ -19,10 +20,11 @@ export function NetworkNodeShell({
   label,
   subtext,
   selected,
+  highlighted,
   accentColor,
 }: NetworkNodeShellProps) {
   return (
-    <NodeCard node={node} selected={selected} accentColor={accentColor}>
+    <NodeCard node={node} selected={selected} highlighted={highlighted} accentColor={accentColor}>
       <Stack gap={4} align="center">
         <ThemeIcon variant="light" color={accentColor} size={40} radius="md">
           {icon}

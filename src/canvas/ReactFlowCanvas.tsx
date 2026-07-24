@@ -18,12 +18,14 @@ import { nodeTypes } from './nodeTypes'
 import { edgeTypes } from './edgeTypes'
 import PaneContextMenu, { type PaneContextMenuState } from './contextMenu/PaneContextMenu'
 import { GROUP_DEFAULT_WIDTH, GROUP_DEFAULT_HEIGHT } from './nodes/groupLayoutConstants'
-import type { NodeType } from '../fileformat/types'
+import type { NodeType, VlanDocNode } from '../fileformat/types'
 
 function CanvasInner() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
   const selection = useDocumentStore((s) => s.selection)
   const focusNodeId = useDocumentStore((s) => s.focusNodeId)
+  const highlightVlanId = useDocumentStore((s) => s.highlightVlanId)
+  const setHighlightVlanId = useDocumentStore((s) => s.setHighlightVlanId)
   const docNodes = useDocumentStore((s) => s.nodesBySheet[activeSheetId] ?? [])
   const docEdges = useDocumentStore((s) => s.edgesBySheet[activeSheetId] ?? [])
   const onNodesChange = useDocumentStore((s) => s.onNodesChange)
@@ -44,10 +46,13 @@ function CanvasInner() {
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
 
   const nodes = useMemo(
-    () => getFlowNodesForSheet(docNodes, selection, draggingNodeId),
-    [docNodes, selection, draggingNodeId],
+    () => getFlowNodesForSheet(docNodes, selection, draggingNodeId, highlightVlanId),
+    [docNodes, selection, draggingNodeId, highlightVlanId],
   )
-  const edges = useMemo(() => getFlowEdgesForSheet(docEdges, selection), [docEdges, selection])
+  const edges = useMemo(
+    () => getFlowEdgesForSheet(docEdges, selection, highlightVlanId),
+    [docEdges, selection, highlightVlanId],
+  )
 
   // Focus/jump requested by a sheet-portal "Go" button: fitView to the target
   // node once its sheet's nodes have been rendered, then select it.
@@ -119,14 +124,36 @@ function CanvasInner() {
   )
 
   const handleNodeClick: NodeMouseHandler = useCallback(
-    (_event, node) => select({ kind: 'node', id: node.id }),
-    [select],
+    (_event, node) => {
+      select({ kind: 'node', id: node.id })
+      setMenu(null)
+      if (node.type === 'vlan') {
+        const docNode = (node.data as { docNode?: VlanDocNode }).docNode
+        setHighlightVlanId(docNode?.data.vlanId ?? 0)
+      } else {
+        setHighlightVlanId(null)
+      }
+    },
+    [select, setHighlightVlanId],
   )
 
   const handleEdgeClick: EdgeMouseHandler = useCallback(
-    (_event, edge) => select({ kind: 'edge', id: edge.id }),
-    [select],
+    (_event, edge) => {
+      select({ kind: 'edge', id: edge.id })
+      setMenu(null)
+      setHighlightVlanId(null)
+    },
+    [select, setHighlightVlanId],
   )
+
+  // React Flow's pane swallows the mousedown before it bubbles to `document`,
+  // so PaneContextMenu's useClickOutside never sees clicks landing on the
+  // canvas itself — close the menu explicitly from the pane's own click handler.
+  const handlePaneClick = useCallback(() => {
+    clearSelection()
+    setMenu(null)
+    setHighlightVlanId(null)
+  }, [clearSelection, setHighlightVlanId])
 
   const handleConnect: OnConnect = useCallback(
     (connection) => onConnectStore(activeSheetId, connection),
@@ -135,6 +162,7 @@ function CanvasInner() {
 
   const handleNodeDragStart: OnNodeDrag = useCallback((_event, node) => {
     setDraggingNodeId(node.id)
+    setMenu(null)
   }, [])
 
   const handleNodeDragStop: OnNodeDrag = useCallback(
@@ -192,7 +220,7 @@ function CanvasInner() {
         onEdgeClick={handleEdgeClick}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
-        onPaneClick={clearSelection}
+        onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}
         colorMode="dark"
         fitView

@@ -4,7 +4,7 @@ import { NetworkNodeShell } from './NetworkNodeShell'
 import { VLAN_ICON, vlanColor } from './nodeTypeMeta'
 
 export default function VlanNode({ data, selected }: NodeProps) {
-  const { docNode } = data as unknown as { docNode: VlanDocNode }
+  const { docNode, highlighted } = data as unknown as { docNode: VlanDocNode; highlighted?: boolean }
   const Icon = VLAN_ICON
   const vlan = docNode.data
   const subtext = [vlan.vlanId != null ? `VLAN ${vlan.vlanId}` : undefined, vlan.vlanName]
@@ -18,6 +18,7 @@ export default function VlanNode({ data, selected }: NodeProps) {
       label={docNode.label}
       subtext={subtext || undefined}
       selected={selected}
+      highlighted={highlighted}
       accentColor={vlanColor(vlan.vlanId)}
     />
   )

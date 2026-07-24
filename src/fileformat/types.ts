@@ -28,6 +28,8 @@ export interface DeviceData {
   model?: string
   os?: string
   iconAssetId?: string
+  /** VLAN tag for this device; 0 is the conventional "no specific VLAN" default. */
+  vlanId?: number
 }
 
 export interface NetworkGroupData {
@@ -48,6 +50,8 @@ export interface IpRangeData {
 
 export interface GroupHeaderData {
   icon?: string
+  /** Uploaded logo asset id; when set, replaces the picked icon on the canvas. */
+  logoAssetId?: string
   headerColor?: string
   collapsed?: boolean
 }
@@ -130,6 +134,9 @@ export interface PhysicalLinkData {
   notes?: string
 }
 
+export type EdgeLineStyle = 'solid' | 'dashed'
+export type EdgeArrowStyle = 'none' | 'forward' | 'both'
+
 export interface DocEdge {
   id: string
   sheetId: string
@@ -139,6 +146,14 @@ export interface DocEdge {
   targetHandle?: string
   type: EdgeType
   label?: string
+  /** Hex color (e.g. "#40c057") overriding the default/type-based stroke color. */
+  color?: string
+  /** VLAN tag for this connection; 0 is the conventional "no specific VLAN" default. */
+  vlanId?: number
+  /** Solid (default) or dashed stroke. */
+  lineStyle?: EdgeLineStyle
+  /** Arrowhead(s) on the connection; unset/'none' renders a plain line. */
+  arrowStyle?: EdgeArrowStyle
   /** Markdown description body, kept in memory; persisted as a separate .md file in the archive. */
   description?: string
   physicalLink?: PhysicalLinkData

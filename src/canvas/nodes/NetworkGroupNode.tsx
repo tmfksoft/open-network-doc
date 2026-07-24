@@ -1,11 +1,11 @@
 import type { NodeProps } from '@xyflow/react'
 import type { NetworkGroupDocNode } from '../../fileformat/types'
 import { NetworkNodeShell } from './NetworkNodeShell'
-import { NETWORK_GROUP_ICON } from './nodeTypeMeta'
+import { networkGroupIcon } from './nodeTypeMeta'
 
 export default function NetworkGroupNode({ data, selected }: NodeProps) {
   const { docNode } = data as unknown as { docNode: NetworkGroupDocNode }
-  const Icon = NETWORK_GROUP_ICON
+  const Icon = networkGroupIcon(docNode.label)
 
   return (
     <NetworkNodeShell

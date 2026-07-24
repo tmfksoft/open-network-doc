@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Stack,
   TextInput,
@@ -10,11 +10,12 @@ import {
   ActionIcon,
   Text,
 } from '@mantine/core'
-import { IconPencil, IconCheck } from '@tabler/icons-react'
+import { IconPencil, IconCheck, IconUpload, IconX } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { GroupHeaderDocNode, GroupHeaderData } from '../fileformat/types'
-import { GroupTypeIcon } from '../canvas/nodes/GroupTypeIcon'
+import GroupHeaderIcon from '../canvas/nodes/GroupHeaderIcon'
 import { GROUP_ICON_KEYS, GROUP_ICON_LABELS, type GroupIconKey } from '../canvas/nodes/groupIconMap'
+import { registerAsset } from '../assets-runtime/assetStore'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 
@@ -48,7 +49,7 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
   return (
     <Stack gap="sm">
       <Group gap="xs">
-        <GroupTypeIcon icon={node.data.icon} size={20} />
+        <GroupHeaderIcon icon={node.data.icon} logoAssetId={node.data.logoAssetId} size={24} />
         <Text fw={600}>{node.label}</Text>
       </Group>
       <Divider label="Description" labelPosition="left" />
@@ -70,6 +71,7 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
 function GroupEditForm({ node }: GroupInspectorProps) {
   const updateNode = useDocumentStore((s) => s.updateNode)
   const removeNode = useDocumentStore((s) => s.removeNode)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const setField = (field: keyof GroupHeaderData, value: GroupHeaderData[keyof GroupHeaderData]) => {
     updateNode(node.sheetId, node.id, { data: { ...node.data, [field]: value } })
@@ -82,8 +84,48 @@ function GroupEditForm({ node }: GroupInspectorProps) {
         defaultValue={node.label}
         onBlur={(e) => updateNode(node.sheetId, node.id, { label: e.currentTarget.value })}
       />
+
+      <div>
+        <Text size="sm" fw={500} mb={4}>
+          Logo
+        </Text>
+        <Group gap="xs">
+          <GroupHeaderIcon icon={node.data.icon} logoAssetId={node.data.logoAssetId} size={36} />
+          <Button
+            size="xs"
+            variant="default"
+            leftSection={<IconUpload size={14} />}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Upload logo
+          </Button>
+          {node.data.logoAssetId && (
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              aria-label="Remove logo"
+              onClick={() => setField('logoAssetId', undefined)}
+            >
+              <IconX size={14} />
+            </ActionIcon>
+          )}
+        </Group>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = ''
+            if (file) setField('logoAssetId', registerAsset(file))
+          }}
+        />
+      </div>
+
       <Select
         label="Icon"
+        description={node.data.logoAssetId ? 'Used when the logo above is removed' : undefined}
         data={GROUP_ICON_KEYS.map((value) => ({ value, label: GROUP_ICON_LABELS[value] }))}
         value={node.data.icon ?? null}
         onChange={(value) => setField('icon', (value ?? undefined) as GroupIconKey | undefined)}

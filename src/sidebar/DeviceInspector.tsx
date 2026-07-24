@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Stack,
   TextInput,
+  NumberInput,
   Select,
   Title,
   Divider,
@@ -83,6 +84,7 @@ function DeviceReadOnlyView({ node }: DeviceInspectorProps) {
       <FieldRow label="Hostname" value={node.data.hostname} />
       <FieldRow label="Static IP" value={node.data.dhcp ? 'DHCP' : node.data.staticIp} />
       <FieldRow label="MAC Address" value={node.data.macAddress} />
+      <FieldRow label="VLAN ID" value={String(node.data.vlanId ?? 0)} />
       <FieldRow label="Vendor" value={node.data.vendor} />
       <FieldRow label="Model" value={node.data.model} />
       <Divider label="Description" labelPosition="left" />
@@ -143,6 +145,13 @@ function DeviceEditForm({ node }: DeviceInspectorProps) {
         placeholder="00:11:22:33:44:55"
         defaultValue={node.data.macAddress ?? ''}
         onBlur={(e) => setField('macAddress', e.currentTarget.value)}
+      />
+      <NumberInput
+        label="VLAN ID"
+        min={0}
+        max={4094}
+        defaultValue={node.data.vlanId ?? 0}
+        onBlur={(e) => setField('vlanId', Number(e.currentTarget.value) || 0)}
       />
       <Select
         label="Device type"

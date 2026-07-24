@@ -8,6 +8,7 @@ import DocTitle from './DocTitle'
 import ModeSwitch from './ModeSwitch'
 import DropZoneOverlay from './DropZoneOverlay'
 import { useBeforeUnloadWarning } from './useBeforeUnloadWarning'
+import { useOpenFromUrlParam } from './useOpenFromUrlParam'
 import KbNav from '../kb/KbNav'
 import KbPageView from '../kb/KbPageView'
 
@@ -17,6 +18,7 @@ export default function AppShell() {
   const mode = useDocumentStore((s) => s.mode)
 
   useBeforeUnloadWarning()
+  useOpenFromUrlParam()
 
   const asideOpen = mode === 'diagram' && selection !== null
 
@@ -47,13 +49,15 @@ export default function AppShell() {
           </Group>
         </MantineAppShell.Header>
 
-        <MantineAppShell.Navbar>{mode === 'diagram' ? <SheetList /> : <KbNav />}</MantineAppShell.Navbar>
+        <MantineAppShell.Navbar style={{ overflowY: 'auto' }}>
+          {mode === 'diagram' ? <SheetList /> : <KbNav />}
+        </MantineAppShell.Navbar>
 
         <MantineAppShell.Main style={{ height: 'calc(100vh - 48px)', overflow: 'auto' }}>
           {mode === 'diagram' ? <ReactFlowCanvas /> : <KbPageView />}
         </MantineAppShell.Main>
 
-        <MantineAppShell.Aside>
+        <MantineAppShell.Aside style={{ overflowY: 'auto' }}>
           <InspectorPanel />
         </MantineAppShell.Aside>
       </MantineAppShell>

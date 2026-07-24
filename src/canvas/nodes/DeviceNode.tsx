@@ -5,7 +5,7 @@ import { DEVICE_TYPE_LABELS } from './deviceIconMap'
 import { NetworkNodeShell } from './NetworkNodeShell'
 
 export default function DeviceNode({ data, selected }: NodeProps) {
-  const { docNode } = data as unknown as { docNode: DeviceDocNode }
+  const { docNode, highlighted } = data as unknown as { docNode: DeviceDocNode; highlighted?: boolean }
 
   return (
     <NetworkNodeShell
@@ -14,6 +14,7 @@ export default function DeviceNode({ data, selected }: NodeProps) {
       label={docNode.label}
       subtext={DEVICE_TYPE_LABELS[docNode.data.deviceType ?? 'other']}
       selected={selected}
+      highlighted={highlighted}
     />
   )
 }

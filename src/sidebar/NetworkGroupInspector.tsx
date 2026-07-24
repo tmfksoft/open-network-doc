@@ -12,7 +12,7 @@ import {
 import { IconPencil, IconCheck } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { NetworkGroupDocNode, NetworkGroupData } from '../fileformat/types'
-import { NETWORK_GROUP_ICON } from '../canvas/nodes/nodeTypeMeta'
+import { networkGroupIcon } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 
@@ -22,7 +22,7 @@ interface NetworkGroupInspectorProps {
 
 export default function NetworkGroupInspector({ node }: NetworkGroupInspectorProps) {
   const [editing, setEditing] = useState(false)
-  const Icon = NETWORK_GROUP_ICON
+  const Icon = networkGroupIcon(node.label)
 
   return (
     <Stack p="md" gap="sm">

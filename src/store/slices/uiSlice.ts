@@ -9,6 +9,8 @@ export interface UiSlice {
   activeKbPageId: string | null
   selection: Selection
   focusNodeId: string | null
+  /** VLAN ID to highlight matching devices/VLAN nodes/edges for; null when nothing is highlighted. */
+  highlightVlanId: number | null
   dirty: boolean
   setMode: (mode: AppMode) => void
   setActiveSheet: (sheetId: string) => void
@@ -16,6 +18,7 @@ export interface UiSlice {
   select: (selection: Selection) => void
   clearSelection: () => void
   setFocusNode: (nodeId: string | null) => void
+  setHighlightVlanId: (vlanId: number | null) => void
   markDirty: () => void
   markClean: () => void
 }
@@ -26,6 +29,7 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
   activeKbPageId: null,
   selection: null,
   focusNodeId: null,
+  highlightVlanId: null,
   dirty: false,
   setMode: (mode) => set({ mode }),
   setActiveSheet: (sheetId) => set({ activeSheetId: sheetId, selection: null }),
@@ -33,6 +37,7 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
   select: (selection) => set({ selection }),
   clearSelection: () => set({ selection: null }),
   setFocusNode: (nodeId) => set({ focusNodeId: nodeId }),
+  setHighlightVlanId: (vlanId) => set({ highlightVlanId: vlanId }),
   markDirty: () => set({ dirty: true }),
   markClean: () => set({ dirty: false }),
 })

@@ -2,7 +2,10 @@ import { useState } from 'react'
 import {
   Stack,
   TextInput,
+  NumberInput,
   Select,
+  ColorInput,
+  ColorSwatch,
   Title,
   Divider,
   Button,
@@ -13,12 +16,38 @@ import {
 } from '@mantine/core'
 import { IconPencil, IconCheck } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
-import type { DocEdge, EdgeType } from '../fileformat/types'
+import type { DocEdge, EdgeArrowStyle, EdgeLineStyle, EdgeType } from '../fileformat/types'
 import { EDGE_TYPE_ICONS, EDGE_TYPE_LABELS } from '../canvas/edges/edgeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 
 const EDGE_TYPES: EdgeType[] = ['physical_link', 'logical_link', 'vlan_membership', 'vpn_tunnel']
+
+const EDGE_COLOR_SWATCHES = [
+  '#e03131',
+  '#f08c00',
+  '#2f9e44',
+  '#1971c2',
+  '#7048e8',
+  '#e64980',
+  '#495057',
+]
+
+const LINE_STYLES: { value: EdgeLineStyle; label: string }[] = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'dashed', label: 'Dashed' },
+]
+
+const ARROW_STYLES: { value: EdgeArrowStyle; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'forward', label: 'Forward' },
+  { value: 'both', label: 'Both directions' },
+]
+const ARROW_STYLE_LABELS: Record<EdgeArrowStyle, string> = {
+  none: 'None',
+  forward: 'Forward',
+  both: 'Both directions',
+}
 
 interface EdgeInspectorProps {
   edge: DocEdge
@@ -69,6 +98,24 @@ function EdgeReadOnlyView({ edge }: EdgeInspectorProps) {
         </Badge>
       </Group>
       <FieldRow label="Label" value={edge.label} />
+      <FieldRow label="VLAN ID" value={String(edge.vlanId ?? 0)} />
+      <div>
+        <Text size="xs" c="dimmed">
+          Color
+        </Text>
+        {edge.color ? (
+          <Group gap={6} mt={2}>
+            <ColorSwatch color={edge.color} size={16} />
+            <Text size="sm">{edge.color}</Text>
+          </Group>
+        ) : (
+          <Text size="sm" c="dimmed">
+            Default
+          </Text>
+        )}
+      </div>
+      <FieldRow label="Line style" value={edge.lineStyle === 'dashed' ? 'Dashed' : 'Solid'} />
+      <FieldRow label="Arrows" value={ARROW_STYLE_LABELS[edge.arrowStyle ?? 'none']} />
       <Divider label="Description" labelPosition="left" />
       {edge.description ? (
         <MarkdownRenderer content={edge.description} />
@@ -102,6 +149,34 @@ function EdgeEditForm({ edge }: EdgeInspectorProps) {
         label="Label"
         defaultValue={edge.label ?? ''}
         onBlur={(e) => updateEdge(edge.sheetId, edge.id, { label: e.currentTarget.value })}
+      />
+      <ColorInput
+        label="Color"
+        placeholder="Default"
+        swatches={EDGE_COLOR_SWATCHES}
+        value={edge.color ?? ''}
+        onChange={(value) => updateEdge(edge.sheetId, edge.id, { color: value || undefined })}
+      />
+      <NumberInput
+        label="VLAN ID"
+        min={0}
+        max={4094}
+        defaultValue={edge.vlanId ?? 0}
+        onBlur={(e) => updateEdge(edge.sheetId, edge.id, { vlanId: Number(e.currentTarget.value) || 0 })}
+      />
+      <Select
+        label="Line style"
+        data={LINE_STYLES}
+        value={edge.lineStyle ?? 'solid'}
+        onChange={(value) => value && updateEdge(edge.sheetId, edge.id, { lineStyle: value as EdgeLineStyle })}
+        allowDeselect={false}
+      />
+      <Select
+        label="Arrows"
+        data={ARROW_STYLES}
+        value={edge.arrowStyle ?? 'none'}
+        onChange={(value) => value && updateEdge(edge.sheetId, edge.id, { arrowStyle: value as EdgeArrowStyle })}
+        allowDeselect={false}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor

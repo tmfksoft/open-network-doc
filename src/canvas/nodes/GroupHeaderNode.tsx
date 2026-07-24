@@ -1,9 +1,10 @@
 import { NodeResizer, type NodeProps } from '@xyflow/react'
-import { Group, Text, ThemeIcon } from '@mantine/core'
+import { Group, Text } from '@mantine/core'
 import type { GroupHeaderDocNode } from '../../fileformat/types'
-import { GroupTypeIcon } from './GroupTypeIcon'
+import GroupHeaderIcon from './GroupHeaderIcon'
 import { GROUP_HEADER_HEIGHT, GROUP_MIN_WIDTH, GROUP_MIN_HEIGHT } from './groupLayoutConstants'
 import NodeHoverCard from '../popovers/NodeHoverCard'
+import { NodeHandles } from './NodeHandles'
 
 export default function GroupHeaderNode({ data, selected }: NodeProps) {
   const { docNode } = data as unknown as { docNode: GroupHeaderDocNode }
@@ -20,6 +21,7 @@ export default function GroupHeaderNode({ data, selected }: NodeProps) {
           opacity: 0.9,
         }}
       >
+        <NodeHandles />
         <NodeResizer
           isVisible={selected}
           minWidth={GROUP_MIN_WIDTH}
@@ -28,9 +30,7 @@ export default function GroupHeaderNode({ data, selected }: NodeProps) {
           handleStyle={{ width: 8, height: 8, borderRadius: 2 }}
         />
         <Group gap={6} wrap="nowrap" px={10} style={{ height: GROUP_HEADER_HEIGHT }}>
-          <ThemeIcon variant="light" size={22} radius="sm">
-            <GroupTypeIcon icon={docNode.data.icon} size={14} />
-          </ThemeIcon>
+          <GroupHeaderIcon icon={docNode.data.icon} logoAssetId={docNode.data.logoAssetId} size={22} />
           <Text size="sm" fw={600} truncate>
             {docNode.label}
           </Text>
