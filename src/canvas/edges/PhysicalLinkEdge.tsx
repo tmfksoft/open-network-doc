@@ -5,6 +5,13 @@ import { EDGE_TYPE_ICONS } from './edgeTypeMeta'
 
 /** Amber "trace this VLAN" glow, matching NodeCard's highlight color. */
 const HIGHLIGHT_COLOR = '#fab005'
+/** Px between adjacent edges sharing the same pair of nodes, so they don't render as one overlapping line. */
+const PARALLEL_SPACING = 24
+
+interface ParallelEdgeData {
+  parallelIndex?: number
+  parallelCount?: number
+}
 
 export default function PhysicalLinkEdge({
   id,
@@ -20,6 +27,23 @@ export default function PhysicalLinkEdge({
   markerStart,
   markerEnd,
 }: EdgeProps) {
+  const { parallelIndex, parallelCount = 1 } = (data as ParallelEdgeData | undefined) ?? {}
+
+  // Edges sharing a node pair would otherwise draw as one identical
+  // overlapping line with stacked, unreadable labels — nudge the path's
+  // midpoint sideways (perpendicular to whichever axis dominates the
+  // connection) so each one fans out into its own visible channel.
+  let centerX: number | undefined
+  let centerY: number | undefined
+  if (parallelCount > 1 && parallelIndex != null) {
+    const offset = (parallelIndex - (parallelCount - 1) / 2) * PARALLEL_SPACING
+    if (Math.abs(targetY - sourceY) >= Math.abs(targetX - sourceX)) {
+      centerX = (sourceX + targetX) / 2 + offset
+    } else {
+      centerY = (sourceY + targetY) / 2 + offset
+    }
+  }
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -27,6 +51,8 @@ export default function PhysicalLinkEdge({
     targetX,
     targetY,
     targetPosition,
+    centerX,
+    centerY,
   })
 
   const docEdge = (data as { docEdge?: DocEdge } | undefined)?.docEdge

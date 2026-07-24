@@ -4,14 +4,13 @@ import {
   TextInput,
   Select,
   Checkbox,
-  Title,
   Divider,
   Button,
   Group,
   ActionIcon,
   Text,
 } from '@mantine/core'
-import { IconPencil, IconCheck, IconUpload, IconX } from '@tabler/icons-react'
+import { IconUpload, IconX } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { GroupHeaderDocNode, GroupHeaderData } from '../fileformat/types'
 import GroupHeaderIcon from '../canvas/nodes/GroupHeaderIcon'
@@ -19,27 +18,51 @@ import { GROUP_ICON_KEYS, GROUP_ICON_LABELS, type GroupIconKey } from '../canvas
 import { registerAsset } from '../assets-runtime/assetStore'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
+import InspectorHeader from './InspectorHeader'
 
 interface GroupInspectorProps {
   node: GroupHeaderDocNode
 }
 
+interface Draft {
+  label: string
+  description: string
+  data: GroupHeaderData
+}
+
+function toDraft(node: GroupHeaderDocNode): Draft {
+  return { label: node.label, description: node.description ?? '', data: { ...node.data } }
+}
+
 export default function GroupInspector({ node }: GroupInspectorProps) {
+  const updateNode = useDocumentStore((s) => s.updateNode)
   const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<Draft>(() => toDraft(node))
+
+  const startEdit = () => {
+    setDraft(toDraft(node))
+    setEditing(true)
+  }
+  const save = () => {
+    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description, data: draft.data })
+    setEditing(false)
+  }
 
   return (
     <Stack p="md" gap="sm">
-      <Group justify="space-between">
-        <Title order={5}>Group</Title>
-        <ActionIcon
-          variant="subtle"
-          aria-label={editing ? 'Done editing' : 'Edit group'}
-          onClick={() => setEditing((e) => !e)}
-        >
-          {editing ? <IconCheck size={16} /> : <IconPencil size={16} />}
-        </ActionIcon>
-      </Group>
-      {editing ? <GroupEditForm node={node} /> : <GroupReadOnlyView node={node} />}
+      <InspectorHeader
+        title="Group"
+        editing={editing}
+        editLabel="Edit group"
+        onEdit={startEdit}
+        onSave={save}
+        onCancel={() => setEditing(false)}
+      />
+      {editing ? (
+        <GroupEditForm node={node} draft={draft} setDraft={setDraft} />
+      ) : (
+        <GroupReadOnlyView node={node} />
+      )}
     </Stack>
   )
 }
@@ -75,21 +98,29 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
   )
 }
 
-function GroupEditForm({ node }: GroupInspectorProps) {
-  const updateNode = useDocumentStore((s) => s.updateNode)
+interface GroupEditFormProps {
+  node: GroupHeaderDocNode
+  draft: Draft
+  setDraft: React.Dispatch<React.SetStateAction<Draft>>
+}
+
+function GroupEditForm({ node, draft, setDraft }: GroupEditFormProps) {
   const removeNode = useDocumentStore((s) => s.removeNode)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const setField = (field: keyof GroupHeaderData, value: GroupHeaderData[keyof GroupHeaderData]) => {
-    updateNode(node.sheetId, node.id, { data: { ...node.data, [field]: value } })
+    setDraft((d) => ({ ...d, data: { ...d.data, [field]: value } }))
   }
 
   return (
     <Stack gap="sm" key={node.id}>
       <TextInput
         label="Label"
-        defaultValue={node.label}
-        onBlur={(e) => updateNode(node.sheetId, node.id, { label: e.currentTarget.value })}
+        value={draft.label}
+        onChange={(e) => {
+          const value = e.currentTarget.value
+          setDraft((d) => ({ ...d, label: value }))
+        }}
       />
 
       <div>
@@ -97,7 +128,7 @@ function GroupEditForm({ node }: GroupInspectorProps) {
           Logo
         </Text>
         <Group gap="xs">
-          <GroupHeaderIcon icon={node.data.icon} logoAssetId={node.data.logoAssetId} size={36} />
+          <GroupHeaderIcon icon={draft.data.icon} logoAssetId={draft.data.logoAssetId} size={36} />
           <Button
             size="xs"
             variant="default"
@@ -106,7 +137,7 @@ function GroupEditForm({ node }: GroupInspectorProps) {
           >
             Upload logo
           </Button>
-          {node.data.logoAssetId && (
+          {draft.data.logoAssetId && (
             <ActionIcon
               variant="subtle"
               color="red"
@@ -132,22 +163,22 @@ function GroupEditForm({ node }: GroupInspectorProps) {
 
       <Select
         label="Icon"
-        description={node.data.logoAssetId ? 'Used when the logo above is removed' : undefined}
+        description={draft.data.logoAssetId ? 'Used when the logo above is removed' : undefined}
         data={GROUP_ICON_KEYS.map((value) => ({ value, label: GROUP_ICON_LABELS[value] }))}
-        value={node.data.icon ?? null}
+        value={draft.data.icon ?? null}
         onChange={(value) => setField('icon', (value ?? undefined) as GroupIconKey | undefined)}
         clearable
       />
       <Checkbox
         label="Hide connection handles"
         description="Prevents drawing edges directly to/from this group's border"
-        checked={node.data.hideHandles ?? false}
+        checked={draft.data.hideHandles ?? false}
         onChange={(e) => setField('hideHandles', e.currentTarget.checked)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
-        value={node.description ?? ''}
-        onCommit={(value) => updateNode(node.sheetId, node.id, { description: value })}
+        value={draft.description}
+        onCommit={(value) => setDraft((d) => ({ ...d, description: value }))}
       />
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeNode(node.sheetId, node.id)}>

@@ -6,20 +6,18 @@ import {
   Select,
   ColorInput,
   ColorSwatch,
-  Title,
   Divider,
   Button,
   Group,
-  ActionIcon,
   Text,
   Badge,
 } from '@mantine/core'
-import { IconPencil, IconCheck } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { DocEdge, EdgeArrowStyle, EdgeLineStyle, EdgeType } from '../fileformat/types'
 import { EDGE_TYPE_ICONS, EDGE_TYPE_LABELS } from '../canvas/edges/edgeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
+import InspectorHeader from './InspectorHeader'
 
 const EDGE_TYPES: EdgeType[] = ['physical_link', 'logical_link', 'vlan_membership', 'vpn_tunnel']
 
@@ -53,22 +51,65 @@ interface EdgeInspectorProps {
   edge: DocEdge
 }
 
+interface Draft {
+  type: EdgeType
+  label: string
+  color?: string
+  vlanId: number
+  lineStyle: EdgeLineStyle
+  arrowStyle: EdgeArrowStyle
+  description: string
+}
+
+function toDraft(edge: DocEdge): Draft {
+  return {
+    type: edge.type,
+    label: edge.label ?? '',
+    color: edge.color,
+    vlanId: edge.vlanId ?? 0,
+    lineStyle: edge.lineStyle ?? 'solid',
+    arrowStyle: edge.arrowStyle ?? 'none',
+    description: edge.description ?? '',
+  }
+}
+
 export default function EdgeInspector({ edge }: EdgeInspectorProps) {
+  const updateEdge = useDocumentStore((s) => s.updateEdge)
   const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<Draft>(() => toDraft(edge))
+
+  const startEdit = () => {
+    setDraft(toDraft(edge))
+    setEditing(true)
+  }
+  const save = () => {
+    updateEdge(edge.sheetId, edge.id, {
+      type: draft.type,
+      label: draft.label,
+      color: draft.color,
+      vlanId: draft.vlanId,
+      lineStyle: draft.lineStyle,
+      arrowStyle: draft.arrowStyle,
+      description: draft.description,
+    })
+    setEditing(false)
+  }
 
   return (
     <Stack p="md" gap="sm">
-      <Group justify="space-between">
-        <Title order={5}>Connection</Title>
-        <ActionIcon
-          variant="subtle"
-          aria-label={editing ? 'Done editing' : 'Edit connection'}
-          onClick={() => setEditing((e) => !e)}
-        >
-          {editing ? <IconCheck size={16} /> : <IconPencil size={16} />}
-        </ActionIcon>
-      </Group>
-      {editing ? <EdgeEditForm edge={edge} /> : <EdgeReadOnlyView edge={edge} />}
+      <InspectorHeader
+        title="Connection"
+        editing={editing}
+        editLabel="Edit connection"
+        onEdit={startEdit}
+        onSave={save}
+        onCancel={() => setEditing(false)}
+      />
+      {editing ? (
+        <EdgeEditForm edge={edge} draft={draft} setDraft={setDraft} />
+      ) : (
+        <EdgeReadOnlyView edge={edge} />
+      )}
     </Stack>
   )
 }
@@ -132,8 +173,13 @@ function EdgeReadOnlyView({ edge }: EdgeInspectorProps) {
   )
 }
 
-function EdgeEditForm({ edge }: EdgeInspectorProps) {
-  const updateEdge = useDocumentStore((s) => s.updateEdge)
+interface EdgeEditFormProps {
+  edge: DocEdge
+  draft: Draft
+  setDraft: React.Dispatch<React.SetStateAction<Draft>>
+}
+
+function EdgeEditForm({ edge, draft, setDraft }: EdgeEditFormProps) {
   const removeEdge = useDocumentStore((s) => s.removeEdge)
 
   return (
@@ -141,47 +187,50 @@ function EdgeEditForm({ edge }: EdgeInspectorProps) {
       <Select
         label="Type"
         data={EDGE_TYPES.map((value) => ({ value, label: EDGE_TYPE_LABELS[value] }))}
-        value={edge.type}
-        onChange={(value) => value && updateEdge(edge.sheetId, edge.id, { type: value as EdgeType })}
+        value={draft.type}
+        onChange={(value) => value && setDraft((d) => ({ ...d, type: value as EdgeType }))}
         allowDeselect={false}
       />
       <TextInput
         label="Label"
-        defaultValue={edge.label ?? ''}
-        onBlur={(e) => updateEdge(edge.sheetId, edge.id, { label: e.currentTarget.value })}
+        value={draft.label}
+        onChange={(e) => {
+          const value = e.currentTarget.value
+          setDraft((d) => ({ ...d, label: value }))
+        }}
       />
       <ColorInput
         label="Color"
         placeholder="Default"
         swatches={EDGE_COLOR_SWATCHES}
-        value={edge.color ?? ''}
-        onChange={(value) => updateEdge(edge.sheetId, edge.id, { color: value || undefined })}
+        value={draft.color ?? ''}
+        onChange={(value) => setDraft((d) => ({ ...d, color: value || undefined }))}
       />
       <NumberInput
         label="VLAN ID"
         min={0}
         max={4094}
-        defaultValue={edge.vlanId ?? 0}
-        onBlur={(e) => updateEdge(edge.sheetId, edge.id, { vlanId: Number(e.currentTarget.value) || 0 })}
+        value={draft.vlanId}
+        onChange={(value) => setDraft((d) => ({ ...d, vlanId: Number(value) || 0 }))}
       />
       <Select
         label="Line style"
         data={LINE_STYLES}
-        value={edge.lineStyle ?? 'solid'}
-        onChange={(value) => value && updateEdge(edge.sheetId, edge.id, { lineStyle: value as EdgeLineStyle })}
+        value={draft.lineStyle}
+        onChange={(value) => value && setDraft((d) => ({ ...d, lineStyle: value as EdgeLineStyle }))}
         allowDeselect={false}
       />
       <Select
         label="Arrows"
         data={ARROW_STYLES}
-        value={edge.arrowStyle ?? 'none'}
-        onChange={(value) => value && updateEdge(edge.sheetId, edge.id, { arrowStyle: value as EdgeArrowStyle })}
+        value={draft.arrowStyle}
+        onChange={(value) => value && setDraft((d) => ({ ...d, arrowStyle: value as EdgeArrowStyle }))}
         allowDeselect={false}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
-        value={edge.description ?? ''}
-        onCommit={(value) => updateEdge(edge.sheetId, edge.id, { description: value })}
+        value={draft.description}
+        onCommit={(value) => setDraft((d) => ({ ...d, description: value }))}
       />
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeEdge(edge.sheetId, edge.id)}>

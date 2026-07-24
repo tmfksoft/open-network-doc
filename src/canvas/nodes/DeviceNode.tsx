@@ -15,6 +15,7 @@ export default function DeviceNode({ data, selected }: NodeProps) {
       subtext={DEVICE_TYPE_LABELS[docNode.data.deviceType ?? 'other']}
       selected={selected}
       highlighted={highlighted}
+      logoAssetId={docNode.data.iconAssetId}
     />
   )
 }

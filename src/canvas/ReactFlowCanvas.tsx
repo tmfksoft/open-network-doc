@@ -22,6 +22,7 @@ import PaneContextMenu, { type PaneContextMenuState } from './contextMenu/PaneCo
 import NodeContextMenu, { type NodeContextMenuState } from './contextMenu/NodeContextMenu'
 import { GROUP_DEFAULT_WIDTH, GROUP_DEFAULT_HEIGHT } from './nodes/groupLayoutConstants'
 import { NODE_CARD_DEFAULT_WIDTH, NODE_CARD_DEFAULT_HEIGHT } from './nodes/NodeCard'
+import { MARKDOWN_NOTE_DEFAULT_WIDTH, MARKDOWN_NOTE_DEFAULT_HEIGHT } from './nodes/MarkdownNoteNode'
 import type { DocNode, NodeType, VlanDocNode } from '../fileformat/types'
 
 const SNAP_GRID: [number, number] = [20, 20]
@@ -166,7 +167,9 @@ function CanvasInner() {
       const size =
         type === 'group_header'
           ? { width: GROUP_DEFAULT_WIDTH, height: GROUP_DEFAULT_HEIGHT }
-          : { width: NODE_CARD_DEFAULT_WIDTH, height: NODE_CARD_DEFAULT_HEIGHT }
+          : type === 'markdown'
+            ? { width: MARKDOWN_NOTE_DEFAULT_WIDTH, height: MARKDOWN_NOTE_DEFAULT_HEIGHT }
+            : { width: NODE_CARD_DEFAULT_WIDTH, height: NODE_CARD_DEFAULT_HEIGHT }
       updateNode(activeSheetId, id, size)
       select({ kind: 'node', id })
       setMenu(null)

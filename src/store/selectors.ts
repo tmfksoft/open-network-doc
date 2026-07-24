@@ -88,14 +88,35 @@ export function getFlowNodesForSheet(
   })
 }
 
+/** Unordered node-pair key so an A→B and a B→A edge are treated as sharing the same visual channel. */
+function edgePairKey(edge: DocEdge): string {
+  return [edge.sourceNodeId, edge.targetNodeId].sort().join('::')
+}
+
 export function getFlowEdgesForSheet(
   edges: DocEdge[],
   selection: Selection,
   highlightVlanId?: number | null,
 ): Edge[] {
+  // Edges connecting the exact same pair of nodes render as identical
+  // overlapping lines (and their labels stack unreadably on top of each
+  // other) — group them by node pair and give each a parallelIndex so
+  // PhysicalLinkEdge can fan them out with a small perpendicular offset.
+  const countByPair = new Map<string, number>()
+  for (const e of edges) countByPair.set(edgePairKey(e), (countByPair.get(edgePairKey(e)) ?? 0) + 1)
+  const seenByPair = new Map<string, number>()
+
   return edges.map((e) => {
     const flowEdge = toFlowEdge(e, selection?.kind === 'edge' && selection.id === e.id)
-    if (highlightVlanId == null) return flowEdge
-    return { ...flowEdge, data: { ...flowEdge.data, highlighted: (e.vlanId ?? 0) === highlightVlanId } }
+    const pairKey = edgePairKey(e)
+    const parallelCount = countByPair.get(pairKey) ?? 1
+    const parallelIndex = seenByPair.get(pairKey) ?? 0
+    seenByPair.set(pairKey, parallelIndex + 1)
+
+    const extraData: Record<string, unknown> = {}
+    if (parallelCount > 1) Object.assign(extraData, { parallelIndex, parallelCount })
+    if (highlightVlanId != null) Object.assign(extraData, { highlighted: (e.vlanId ?? 0) === highlightVlanId })
+    if (Object.keys(extraData).length === 0) return flowEdge
+    return { ...flowEdge, data: { ...flowEdge.data, ...extraData } }
   })
 }

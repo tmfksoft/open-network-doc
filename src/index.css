@@ -11,10 +11,12 @@ body,
    in a separate DOM layer from the SVG edge paths, and by default stack
    below regular nodes/groups even though the edge line itself renders above
    them — lift the whole label layer so both halves of an edge stay together
-   visually. Still well under the dragging-node elevation (10000+) so an
-   actively dragged node stays on top of edge labels while moving. */
+   visually. React Flow elevates a SELECTED node to z-index 1000 (see
+   elevateNodesOnSelect), so this needs to clear that too, not just tie with
+   it — 1001 does, while staying well under the dragging elevation (10000+)
+   so an actively dragged node stays on top of edge labels while moving. */
 .react-flow__edgelabel-renderer {
-  z-index: 1000;
+  z-index: 1001;
 }
 
 /* Toggled state for custom Controls buttons (e.g. the snap-to-grid magnet). */

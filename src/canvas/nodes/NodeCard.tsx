@@ -20,11 +20,13 @@ interface NodeCardProps {
   highlighted?: boolean
   /** Mantine color name (e.g. from VLAN color coding) tinting the border when not selected. */
   accentColor?: string
+  /** Node types with no connection points at all (e.g. markdown notes) — still resizable, just not linkable. */
+  hideHandles?: boolean
   children: ReactNode
 }
 
 /** Shared Paper + connection-handle + hover-summary wrapper for all connectable canvas node types. */
-export function NodeCard({ node, selected, highlighted, accentColor, children }: NodeCardProps) {
+export function NodeCard({ node, selected, highlighted, accentColor, hideHandles, children }: NodeCardProps) {
   const borderColor = selected
     ? 'var(--mantine-color-blue-6)'
     : highlighted
@@ -58,7 +60,7 @@ export function NodeCard({ node, selected, highlighted, accentColor, children }:
           lineStyle={{ borderColor: 'var(--mantine-color-blue-6)' }}
           handleStyle={{ width: 8, height: 8, borderRadius: 2 }}
         />
-        <NodeHandles width={width} height={height} />
+        {!hideHandles && <NodeHandles width={width} height={height} />}
         {children}
       </Paper>
     </NodeHoverCard>

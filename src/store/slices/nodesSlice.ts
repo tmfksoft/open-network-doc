@@ -305,5 +305,7 @@ function defaultLabelFor(type: NodeType): string {
       return 'New Group'
     case 'sheet_portal':
       return 'Sheet Link'
+    case 'markdown':
+      return 'New Note'
   }
 }

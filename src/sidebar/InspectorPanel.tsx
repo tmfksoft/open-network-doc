@@ -7,6 +7,7 @@ import NetworkGroupInspector from './NetworkGroupInspector'
 import VlanInspector from './VlanInspector'
 import IpRangeInspector from './IpRangeInspector'
 import SheetPortalInspector from './SheetPortalInspector'
+import MarkdownNoteInspector from './MarkdownNoteInspector'
 
 export default function InspectorPanel() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
@@ -46,5 +47,7 @@ export default function InspectorPanel() {
       return <IpRangeInspector key={node.id} node={node} />
     case 'sheet_portal':
       return <SheetPortalInspector key={node.id} node={node} />
+    case 'markdown':
+      return <MarkdownNoteInspector key={node.id} node={node} />
   }
 }

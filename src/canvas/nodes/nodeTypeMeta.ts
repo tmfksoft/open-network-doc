@@ -1,14 +1,16 @@
-import { IconSitemap, IconTags, IconArrowsHorizontal, IconDoorEnter, IconWorld } from '@tabler/icons-react'
+import { IconSitemap, IconTags, IconArrowsHorizontal, IconDoorEnter, IconWorld, IconMarkdown } from '@tabler/icons-react'
 
 export const NETWORK_GROUP_ICON = IconSitemap
 export const VLAN_ICON = IconTags
 export const IP_RANGE_ICON = IconArrowsHorizontal
 export const SHEET_PORTAL_ICON = IconDoorEnter
+export const MARKDOWN_NOTE_ICON = IconMarkdown
 
 export const NETWORK_GROUP_LABEL = 'Network Group'
 export const VLAN_LABEL = 'VLAN'
 export const IP_RANGE_LABEL = 'IP Range'
 export const SHEET_PORTAL_LABEL = 'Sheet Link'
+export const MARKDOWN_NOTE_LABEL = 'Markdown Note'
 
 const INTERNET_NAME_PATTERN = /^(the\s+)?internet$/i
 

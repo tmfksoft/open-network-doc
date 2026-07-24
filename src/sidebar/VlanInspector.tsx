@@ -3,42 +3,59 @@ import {
   Stack,
   TextInput,
   NumberInput,
-  Title,
   Divider,
   Button,
   Group,
-  ActionIcon,
   Text,
 } from '@mantine/core'
-import { IconPencil, IconCheck } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { VlanDocNode, VlanData } from '../fileformat/types'
 import { VLAN_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
+import InspectorHeader from './InspectorHeader'
 
 interface VlanInspectorProps {
   node: VlanDocNode
 }
 
+interface Draft {
+  label: string
+  description: string
+  data: VlanData
+}
+
+function toDraft(node: VlanDocNode): Draft {
+  return { label: node.label, description: node.description ?? '', data: { ...node.data } }
+}
+
 export default function VlanInspector({ node }: VlanInspectorProps) {
+  const updateNode = useDocumentStore((s) => s.updateNode)
   const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<Draft>(() => toDraft(node))
   const Icon = VLAN_ICON
+
+  const startEdit = () => {
+    setDraft(toDraft(node))
+    setEditing(true)
+  }
+  const save = () => {
+    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description, data: draft.data })
+    setEditing(false)
+  }
 
   return (
     <Stack p="md" gap="sm">
-      <Group justify="space-between">
-        <Title order={5}>VLAN</Title>
-        <ActionIcon
-          variant="subtle"
-          aria-label={editing ? 'Done editing' : 'Edit VLAN'}
-          onClick={() => setEditing((e) => !e)}
-        >
-          {editing ? <IconCheck size={16} /> : <IconPencil size={16} />}
-        </ActionIcon>
-      </Group>
+      <InspectorHeader
+        title="VLAN"
+        editing={editing}
+        editLabel="Edit VLAN"
+        onEdit={startEdit}
+        onSave={save}
+        onCancel={() => setEditing(false)}
+      />
       {editing ? (
-        <VlanEditForm node={node} />
+        <VlanEditForm node={node} draft={draft} setDraft={setDraft} />
       ) : (
         <Stack gap="sm">
           <Group gap="xs">
@@ -88,37 +105,44 @@ function DeleteButton({ node }: VlanInspectorProps) {
   )
 }
 
-function VlanEditForm({ node }: VlanInspectorProps) {
-  const updateNode = useDocumentStore((s) => s.updateNode)
+interface VlanEditFormProps {
+  node: VlanDocNode
+  draft: Draft
+  setDraft: React.Dispatch<React.SetStateAction<Draft>>
+}
 
+function VlanEditForm({ node, draft, setDraft }: VlanEditFormProps) {
   const setField = (field: keyof VlanData, value: VlanData[keyof VlanData]) => {
-    updateNode(node.sheetId, node.id, { data: { ...node.data, [field]: value } })
+    setDraft((d) => ({ ...d, data: { ...d.data, [field]: value } }))
   }
 
   return (
     <Stack gap="sm" key={node.id}>
       <TextInput
         label="Label"
-        defaultValue={node.label}
-        onBlur={(e) => updateNode(node.sheetId, node.id, { label: e.currentTarget.value })}
+        value={draft.label}
+        onChange={(e) => {
+          const value = e.currentTarget.value
+          setDraft((d) => ({ ...d, label: value }))
+        }}
       />
       <NumberInput
         label="VLAN ID"
         placeholder="100"
         min={1}
         max={4094}
-        defaultValue={node.data.vlanId}
-        onBlur={(e) => setField('vlanId', e.currentTarget.value ? Number(e.currentTarget.value) : undefined)}
+        value={draft.data.vlanId}
+        onChange={(value) => setField('vlanId', value === '' ? undefined : Number(value))}
       />
       <TextInput
         label="VLAN Name"
-        defaultValue={node.data.vlanName ?? ''}
-        onBlur={(e) => setField('vlanName', e.currentTarget.value)}
+        value={draft.data.vlanName ?? ''}
+        onChange={(e) => setField('vlanName', e.currentTarget.value)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
-        value={node.description ?? ''}
-        onCommit={(value) => updateNode(node.sheetId, node.id, { description: value })}
+        value={draft.description}
+        onCommit={(value) => setDraft((d) => ({ ...d, description: value }))}
       />
       <DeleteButton node={node} />
     </Stack>

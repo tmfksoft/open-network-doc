@@ -5,6 +5,7 @@ export type NodeType =
   | 'ip_range'
   | 'group_header'
   | 'sheet_portal'
+  | 'markdown'
 
 export type EdgeType = 'physical_link' | 'logical_link' | 'vlan_membership' | 'vpn_tunnel'
 
@@ -64,6 +65,9 @@ export interface SheetPortalData {
   labelOverride?: string
 }
 
+/** No fields of its own — its markdown body is BaseDocNode.description, same as every other node type's description. */
+export type MarkdownNoteData = Record<string, never>
+
 export type NodeTypeData<T extends NodeType> = T extends 'device'
   ? DeviceData
   : T extends 'network_group'
@@ -76,7 +80,9 @@ export type NodeTypeData<T extends NodeType> = T extends 'device'
           ? GroupHeaderData
           : T extends 'sheet_portal'
             ? SheetPortalData
-            : never
+            : T extends 'markdown'
+              ? MarkdownNoteData
+              : never
 
 interface BaseDocNode {
   id: string
@@ -118,6 +124,10 @@ export interface SheetPortalDocNode extends BaseDocNode {
   type: 'sheet_portal'
   data: SheetPortalData
 }
+export interface MarkdownNoteDocNode extends BaseDocNode {
+  type: 'markdown'
+  data: MarkdownNoteData
+}
 
 /** Discriminated union on `type` — enables narrowing via switch/if without casts. */
 export type DocNode =
@@ -127,6 +137,7 @@ export type DocNode =
   | IpRangeDocNode
   | GroupHeaderDocNode
   | SheetPortalDocNode
+  | MarkdownNoteDocNode
 
 export interface PhysicalLinkData {
   portSource?: string

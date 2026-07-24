@@ -2,19 +2,17 @@ import { useState } from 'react'
 import {
   Stack,
   TextInput,
-  Title,
   Divider,
   Button,
   Group,
-  ActionIcon,
   Text,
 } from '@mantine/core'
-import { IconPencil, IconCheck } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { IpRangeDocNode, IpRangeData } from '../fileformat/types'
 import { IP_RANGE_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
+import InspectorHeader from './InspectorHeader'
 
 interface IpRangeInspectorProps {
   node: IpRangeDocNode
@@ -31,24 +29,43 @@ function FieldRow({ label, value }: { label: string; value?: string }) {
   )
 }
 
+interface Draft {
+  label: string
+  description: string
+  data: IpRangeData
+}
+
+function toDraft(node: IpRangeDocNode): Draft {
+  return { label: node.label, description: node.description ?? '', data: { ...node.data } }
+}
+
 export default function IpRangeInspector({ node }: IpRangeInspectorProps) {
+  const updateNode = useDocumentStore((s) => s.updateNode)
   const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<Draft>(() => toDraft(node))
   const Icon = IP_RANGE_ICON
+
+  const startEdit = () => {
+    setDraft(toDraft(node))
+    setEditing(true)
+  }
+  const save = () => {
+    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description, data: draft.data })
+    setEditing(false)
+  }
 
   return (
     <Stack p="md" gap="sm">
-      <Group justify="space-between">
-        <Title order={5}>IP Range</Title>
-        <ActionIcon
-          variant="subtle"
-          aria-label={editing ? 'Done editing' : 'Edit IP range'}
-          onClick={() => setEditing((e) => !e)}
-        >
-          {editing ? <IconCheck size={16} /> : <IconPencil size={16} />}
-        </ActionIcon>
-      </Group>
+      <InspectorHeader
+        title="IP Range"
+        editing={editing}
+        editLabel="Edit IP range"
+        onEdit={startEdit}
+        onSave={save}
+        onCancel={() => setEditing(false)}
+      />
       {editing ? (
-        <IpRangeEditForm node={node} />
+        <IpRangeEditForm node={node} draft={draft} setDraft={setDraft} />
       ) : (
         <Stack gap="sm">
           <Group gap="xs">
@@ -86,48 +103,55 @@ function DeleteButton({ node }: IpRangeInspectorProps) {
   )
 }
 
-function IpRangeEditForm({ node }: IpRangeInspectorProps) {
-  const updateNode = useDocumentStore((s) => s.updateNode)
+interface IpRangeEditFormProps {
+  node: IpRangeDocNode
+  draft: Draft
+  setDraft: React.Dispatch<React.SetStateAction<Draft>>
+}
 
+function IpRangeEditForm({ node, draft, setDraft }: IpRangeEditFormProps) {
   const setField = (field: keyof IpRangeData, value: IpRangeData[keyof IpRangeData]) => {
-    updateNode(node.sheetId, node.id, { data: { ...node.data, [field]: value } })
+    setDraft((d) => ({ ...d, data: { ...d.data, [field]: value } }))
   }
 
   return (
     <Stack gap="sm" key={node.id}>
       <TextInput
         label="Label"
-        defaultValue={node.label}
-        onBlur={(e) => updateNode(node.sheetId, node.id, { label: e.currentTarget.value })}
+        value={draft.label}
+        onChange={(e) => {
+          const value = e.currentTarget.value
+          setDraft((d) => ({ ...d, label: value }))
+        }}
       />
       <TextInput
         label="Range start"
         placeholder="10.0.0.10"
-        defaultValue={node.data.rangeStart ?? ''}
-        onBlur={(e) => setField('rangeStart', e.currentTarget.value)}
+        value={draft.data.rangeStart ?? ''}
+        onChange={(e) => setField('rangeStart', e.currentTarget.value)}
       />
       <TextInput
         label="Range end"
         placeholder="10.0.0.200"
-        defaultValue={node.data.rangeEnd ?? ''}
-        onBlur={(e) => setField('rangeEnd', e.currentTarget.value)}
+        value={draft.data.rangeEnd ?? ''}
+        onChange={(e) => setField('rangeEnd', e.currentTarget.value)}
       />
       <TextInput
         label="CIDR"
         placeholder="10.0.0.0/24"
-        defaultValue={node.data.cidr ?? ''}
-        onBlur={(e) => setField('cidr', e.currentTarget.value)}
+        value={draft.data.cidr ?? ''}
+        onChange={(e) => setField('cidr', e.currentTarget.value)}
       />
       <TextInput
         label="Purpose"
         placeholder="DHCP scope"
-        defaultValue={node.data.purpose ?? ''}
-        onBlur={(e) => setField('purpose', e.currentTarget.value)}
+        value={draft.data.purpose ?? ''}
+        onChange={(e) => setField('purpose', e.currentTarget.value)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
-        value={node.description ?? ''}
-        onCommit={(value) => updateNode(node.sheetId, node.id, { description: value })}
+        value={draft.description}
+        onCommit={(value) => setDraft((d) => ({ ...d, description: value }))}
       />
       <DeleteButton node={node} />
     </Stack>

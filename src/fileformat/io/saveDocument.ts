@@ -35,8 +35,16 @@ export async function saveDocument(options: { saveAs?: boolean } = {}): Promise<
   const state = getDocumentStateSnapshot()
   const bytes = await buildArchiveBytes(state)
   const filename = suggestedFileName(state.docTitle)
+  return writeBytes(bytes, filename, options.saveAs ?? false)
+}
 
-  if (window.showSaveFilePicker && (options.saveAs || !fileHandle)) {
+async function writeBytes(
+  bytes: Uint8Array,
+  filename: string,
+  saveAs: boolean,
+  isRetry = false,
+): Promise<SaveResult> {
+  if (window.showSaveFilePicker && (saveAs || !fileHandle)) {
     try {
       fileHandle = await window.showSaveFilePicker({
         suggestedName: filename,
@@ -51,11 +59,25 @@ export async function saveDocument(options: { saveAs?: boolean } = {}): Promise<
   }
 
   if (fileHandle) {
-    const writable = await fileHandle.createWritable()
-    await writable.write(bytes)
-    await writable.close()
-    useDocumentStore.getState().markClean()
-    return { saved: true, method: 'file-system-access' }
+    try {
+      const writable = await fileHandle.createWritable()
+      await writable.write(bytes)
+      await writable.close()
+      useDocumentStore.getState().markClean()
+      return { saved: true, method: 'file-system-access' }
+    } catch (err) {
+      // The cached FileSystemFileHandle can go stale between saves — a known
+      // File System Access API quirk (antivirus, cloud sync like OneDrive
+      // touching the file, or just enough time passing can invalidate it),
+      // surfacing as "state cached in an interface object... had changed
+      // since it was read from disk". Drop the handle and re-prompt for a
+      // fresh one once rather than failing the save outright.
+      fileHandle = null
+      if (!isRetry && window.showSaveFilePicker) {
+        return writeBytes(bytes, filename, true, true)
+      }
+      throw err
+    }
   }
 
   downloadBytes(bytes, filename)

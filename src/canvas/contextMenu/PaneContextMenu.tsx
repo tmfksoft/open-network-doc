@@ -25,6 +25,7 @@ const MENU_ITEMS: { type: NodeType; label: string }[] = [
   { type: 'ip_range', label: 'IP Range' },
   { type: 'group_header', label: 'Group' },
   { type: 'sheet_portal', label: 'Sheet Link' },
+  { type: 'markdown', label: 'Markdown Note' },
 ]
 
 export default function PaneContextMenu({ state, onClose, onAddNode, onPaste }: PaneContextMenuProps) {

@@ -6,8 +6,8 @@ import { writeEdges, readEdges } from '../sqlite/repository/edgesRepo'
 import { writeKbPages, readKbPages } from '../sqlite/repository/kbRepo'
 import { buildArchive, readArchive, textFile, readText, type ArchiveFiles } from '../zip/archive'
 import { buildManifest, parseManifest, isSupportedFormatVersion } from '../zip/manifest'
-import { getAllAssets, extensionForMime, registerAsset } from '../../assets-runtime/assetStore'
-import type { DocumentState, DocNode, DocEdge } from '../types'
+import { getAllAssets, extensionForMime, mimeForExtension, registerAsset, pruneAssets } from '../../assets-runtime/assetStore'
+import type { DocumentState, DocNode, DocEdge, KbPage } from '../types'
 
 export class UnsupportedFormatError extends Error {}
 export class CorruptArchiveError extends Error {}
@@ -15,7 +15,27 @@ export class CorruptArchiveError extends Error {}
 const nodeMarkdownPath = (nodeId: string) => `markdown/nodes/${nodeId}.md`
 const edgeMarkdownPath = (edgeId: string) => `markdown/edges/${edgeId}.md`
 const kbMarkdownPath = (pageId: string) => `markdown/kb/${pageId}.md`
-const ASSET_PATH_PATTERN = /^assets\/images\/([^/.]+)\.[^/.]+$/
+const ASSET_PATH_PATTERN = /^assets\/images\/([^/.]+)\.([^/.]+)$/
+const ASSET_URL_PATTERN = /asset:\/\/([\w-]+)/g
+
+/** Every asset id actually referenced by the document — icons/logos plus any `asset://` used in markdown. */
+function collectReferencedAssetIds(nodes: DocNode[], edges: DocEdge[], kbPages: KbPage[]): Set<string> {
+  const ids = new Set<string>()
+  const scanText = (text?: string) => {
+    if (!text) return
+    for (const m of text.matchAll(ASSET_URL_PATTERN)) ids.add(m[1])
+  }
+
+  for (const node of nodes) {
+    if (node.type === 'device' && node.data.iconAssetId) ids.add(node.data.iconAssetId)
+    if (node.type === 'group_header' && node.data.logoAssetId) ids.add(node.data.logoAssetId)
+    scanText(node.description)
+  }
+  for (const edge of edges) scanText(edge.description)
+  for (const page of kbPages) scanText(page.content)
+
+  return ids
+}
 
 export async function buildArchiveBytes(state: DocumentState): Promise<Uint8Array> {
   const db = await createDatabase()
@@ -45,10 +65,16 @@ export async function buildArchiveBytes(state: DocumentState): Promise<Uint8Arra
     if (page.content) files[kbMarkdownPath(page.id)] = textFile(page.content)
   }
 
+  // Only embed (and keep in memory) assets the document actually still
+  // references — otherwise every removed/replaced logo lingers in the
+  // archive forever.
+  const referencedAssetIds = collectReferencedAssetIds(allNodes, allEdges, state.kbPages)
   for (const [id, blob] of getAllAssets()) {
+    if (!referencedAssetIds.has(id)) continue
     const ext = extensionForMime(blob.type)
     files[`assets/images/${id}.${ext}`] = new Uint8Array(await blob.arrayBuffer())
   }
+  pruneAssets(referencedAssetIds)
 
   return buildArchive(files)
 }
@@ -101,8 +127,8 @@ export async function parseArchiveBytes(bytes: Uint8Array): Promise<DocumentStat
   for (const [path, bytes] of Object.entries(files)) {
     const match = ASSET_PATH_PATTERN.exec(path)
     if (!match) continue
-    const [, assetId] = match
-    registerAsset(new Blob([bytes]), assetId)
+    const [, assetId, ext] = match
+    registerAsset(new Blob([bytes], { type: mimeForExtension(ext) }), assetId)
   }
 
   const nodesBySheet: Record<string, DocNode[]> = {}

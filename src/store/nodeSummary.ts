@@ -39,6 +39,8 @@ export function getNodeSummary(node: DocNode): SummaryLine[] {
       break
     case 'sheet_portal':
       break
+    case 'markdown':
+      break
   }
 
   return lines

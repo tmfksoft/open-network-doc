@@ -1,78 +1,64 @@
 import { useState } from 'react'
-import {
-  Stack,
-  TextInput,
-  Divider,
-  Button,
-  Group,
-  Text,
-} from '@mantine/core'
+import { Stack, TextInput, Divider, Button, Group, Text } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
-import type { NetworkGroupDocNode, NetworkGroupData } from '../fileformat/types'
-import { networkGroupIcon } from '../canvas/nodes/nodeTypeMeta'
+import type { MarkdownNoteDocNode } from '../fileformat/types'
+import { MARKDOWN_NOTE_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
 
-interface NetworkGroupInspectorProps {
-  node: NetworkGroupDocNode
+interface MarkdownNoteInspectorProps {
+  node: MarkdownNoteDocNode
 }
 
 interface Draft {
   label: string
   description: string
-  data: NetworkGroupData
 }
 
-function toDraft(node: NetworkGroupDocNode): Draft {
-  return { label: node.label, description: node.description ?? '', data: { ...node.data } }
+function toDraft(node: MarkdownNoteDocNode): Draft {
+  return { label: node.label, description: node.description ?? '' }
 }
 
-export default function NetworkGroupInspector({ node }: NetworkGroupInspectorProps) {
+export default function MarkdownNoteInspector({ node }: MarkdownNoteInspectorProps) {
   const updateNode = useDocumentStore((s) => s.updateNode)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Draft>(() => toDraft(node))
-  const Icon = networkGroupIcon(node.label)
+  const Icon = MARKDOWN_NOTE_ICON
 
   const startEdit = () => {
     setDraft(toDraft(node))
     setEditing(true)
   }
   const save = () => {
-    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description, data: draft.data })
+    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description })
     setEditing(false)
   }
 
   return (
     <Stack p="md" gap="sm">
       <InspectorHeader
-        title="Network Group"
+        title="Markdown Note"
         editing={editing}
-        editLabel="Edit network group"
+        editLabel="Edit note"
         onEdit={startEdit}
         onSave={save}
         onCancel={() => setEditing(false)}
       />
       {editing ? (
-        <NetworkGroupEditForm node={node} draft={draft} setDraft={setDraft} />
+        <MarkdownNoteEditForm node={node} draft={draft} setDraft={setDraft} />
       ) : (
         <Stack gap="sm">
           <Group gap="xs">
             <Icon size={20} />
             <Text fw={600}>{node.label}</Text>
           </Group>
-          <div>
-            <Text size="xs" c="dimmed">
-              CIDR
-            </Text>
-            <Text size="sm">{node.data.cidr || <Text component="span" c="dimmed">Not set</Text>}</Text>
-          </div>
-          <Divider label="Description" labelPosition="left" />
+          <Divider />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
           ) : (
             <Text size="sm" c="dimmed">
-              No description.
+              Empty note.
             </Text>
           )}
           <DeleteButton node={node} />
@@ -82,46 +68,37 @@ export default function NetworkGroupInspector({ node }: NetworkGroupInspectorPro
   )
 }
 
-function DeleteButton({ node }: NetworkGroupInspectorProps) {
+function DeleteButton({ node }: MarkdownNoteInspectorProps) {
   const removeNode = useDocumentStore((s) => s.removeNode)
   return (
     <>
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeNode(node.sheetId, node.id)}>
-        Delete network group
+        Delete note
       </Button>
     </>
   )
 }
 
-interface NetworkGroupEditFormProps {
-  node: NetworkGroupDocNode
+interface MarkdownNoteEditFormProps {
+  node: MarkdownNoteDocNode
   draft: Draft
   setDraft: React.Dispatch<React.SetStateAction<Draft>>
 }
 
-function NetworkGroupEditForm({ node, draft, setDraft }: NetworkGroupEditFormProps) {
-  const setField = (field: keyof NetworkGroupData, value: NetworkGroupData[keyof NetworkGroupData]) => {
-    setDraft((d) => ({ ...d, data: { ...d.data, [field]: value } }))
-  }
-
+function MarkdownNoteEditForm({ node, draft, setDraft }: MarkdownNoteEditFormProps) {
   return (
     <Stack gap="sm" key={node.id}>
       <TextInput
         label="Label"
+        description="Internal name only — not shown on the note itself"
         value={draft.label}
         onChange={(e) => {
           const value = e.currentTarget.value
           setDraft((d) => ({ ...d, label: value }))
         }}
       />
-      <TextInput
-        label="CIDR"
-        placeholder="10.0.0.0/24"
-        value={draft.data.cidr ?? ''}
-        onChange={(e) => setField('cidr', e.currentTarget.value)}
-      />
-      <Divider label="Description" labelPosition="left" />
+      <Divider label="Content" labelPosition="left" />
       <MarkdownEditor
         value={draft.description}
         onCommit={(value) => setDraft((d) => ({ ...d, description: value }))}
