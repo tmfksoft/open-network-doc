@@ -4,7 +4,6 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
-  MiniMap,
   useReactFlow,
   type NodeMouseHandler,
   type EdgeMouseHandler,
@@ -17,8 +16,9 @@ import { getFlowNodesForSheet, getFlowEdgesForSheet } from '../store/selectors'
 import { nodeTypes } from './nodeTypes'
 import { edgeTypes } from './edgeTypes'
 import PaneContextMenu, { type PaneContextMenuState } from './contextMenu/PaneContextMenu'
+import NodeContextMenu, { type NodeContextMenuState } from './contextMenu/NodeContextMenu'
 import { GROUP_DEFAULT_WIDTH, GROUP_DEFAULT_HEIGHT } from './nodes/groupLayoutConstants'
-import type { NodeType, VlanDocNode } from '../fileformat/types'
+import type { DocNode, NodeType, VlanDocNode } from '../fileformat/types'
 
 function CanvasInner() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
@@ -35,6 +35,7 @@ function CanvasInner() {
   const updateNode = useDocumentStore((s) => s.updateNode)
   const removeNode = useDocumentStore((s) => s.removeNode)
   const duplicateNode = useDocumentStore((s) => s.duplicateNode)
+  const pasteNode = useDocumentStore((s) => s.pasteNode)
   const removeEdge = useDocumentStore((s) => s.removeEdge)
   const assignNodeToGroup = useDocumentStore((s) => s.assignNodeToGroup)
   const select = useDocumentStore((s) => s.select)
@@ -43,7 +44,9 @@ function CanvasInner() {
 
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [menu, setMenu] = useState<PaneContextMenuState | null>(null)
+  const [nodeMenu, setNodeMenu] = useState<NodeContextMenuState | null>(null)
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
+  const [clipboardNode, setClipboardNode] = useState<DocNode | null>(null)
 
   const nodes = useMemo(
     () => getFlowNodesForSheet(docNodes, selection, draggingNodeId, highlightVlanId),
@@ -68,11 +71,13 @@ function CanvasInner() {
   }, [focusNodeId, docNodes, fitView, select, setFocusNode])
 
   // Delete/Backspace removes the current selection; Ctrl/Cmd+D duplicates the
-  // selected node. Skipped while focus is in a text field (inspector forms,
-  // markdown editors, sheet/KB rename inputs, etc. all use the same keys).
+  // selected node; Ctrl/Cmd+C copies it; Ctrl/Cmd+V pastes the copy (offset
+  // from wherever it last landed, so repeated pastes cascade rather than
+  // stack exactly on top of each other). Skipped while focus is in a text
+  // field (inspector forms, markdown editors, sheet/KB rename inputs, etc.
+  // all use the same keys).
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (!selection) return
       const target = event.target as HTMLElement | null
       const isEditable =
         target &&
@@ -81,24 +86,49 @@ function CanvasInner() {
           target.isContentEditable)
       if (isEditable) return
 
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        event.preventDefault()
-        if (selection.kind === 'node') removeNode(activeSheetId, selection.id)
-        else removeEdge(activeSheetId, selection.id)
-        return
+      const isMod = event.ctrlKey || event.metaKey
+
+      if (selection) {
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+          event.preventDefault()
+          if (selection.kind === 'node') removeNode(activeSheetId, selection.id)
+          else removeEdge(activeSheetId, selection.id)
+          return
+        }
+
+        if (isMod && event.key.toLowerCase() === 'd') {
+          if (selection.kind !== 'node') return
+          event.preventDefault()
+          const newId = duplicateNode(activeSheetId, selection.id)
+          if (newId) select({ kind: 'node', id: newId })
+          return
+        }
+
+        if (isMod && event.key.toLowerCase() === 'c') {
+          if (selection.kind !== 'node') return
+          const node = docNodes.find((n) => n.id === selection.id)
+          if (node) setClipboardNode(node)
+          return
+        }
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
-        if (selection.kind !== 'node') return
+      if (isMod && event.key.toLowerCase() === 'v') {
+        if (!clipboardNode) return
         event.preventDefault()
-        const newId = duplicateNode(activeSheetId, selection.id)
-        if (newId) select({ kind: 'node', id: newId })
+        const newId = pasteNode(activeSheetId, clipboardNode)
+        select({ kind: 'node', id: newId })
+        // Advance the clipboard's reference position so a second Ctrl+V
+        // cascades further away instead of landing exactly on the first paste.
+        setClipboardNode({
+          ...clipboardNode,
+          position: { x: clipboardNode.position.x + 30, y: clipboardNode.position.y + 30 },
+        })
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selection, activeSheetId, removeNode, removeEdge, duplicateNode, select])
+  }, [selection, activeSheetId, docNodes, removeNode, removeEdge, duplicateNode, pasteNode, clipboardNode, select])
 
   const handlePaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
@@ -107,8 +137,19 @@ function CanvasInner() {
       const clientY = 'clientY' in event ? event.clientY : 0
       const flowPos = screenToFlowPosition({ x: clientX, y: clientY })
       setMenu({ clientX, clientY, flowX: flowPos.x, flowY: flowPos.y })
+      setNodeMenu(null)
     },
     [screenToFlowPosition],
+  )
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: { id: string }) => {
+      event.preventDefault()
+      select({ kind: 'node', id: node.id })
+      setNodeMenu({ clientX: event.clientX, clientY: event.clientY, nodeId: node.id })
+      setMenu(null)
+    },
+    [select],
   )
 
   const handleAddNode = useCallback(
@@ -123,10 +164,47 @@ function CanvasInner() {
     [activeSheetId, addNode, updateNode, select],
   )
 
+  const handlePasteAt = useCallback(
+    (flowX: number, flowY: number) => {
+      if (!clipboardNode) return
+      const id = pasteNode(activeSheetId, clipboardNode, { x: flowX, y: flowY })
+      select({ kind: 'node', id })
+      setMenu(null)
+    },
+    [activeSheetId, clipboardNode, pasteNode, select],
+  )
+
+  const handleCopyFromMenu = useCallback(
+    (nodeId: string) => {
+      const node = docNodes.find((n) => n.id === nodeId)
+      if (node) setClipboardNode(node)
+      setNodeMenu(null)
+    },
+    [docNodes],
+  )
+
+  const handleDuplicateFromMenu = useCallback(
+    (nodeId: string) => {
+      const newId = duplicateNode(activeSheetId, nodeId)
+      if (newId) select({ kind: 'node', id: newId })
+      setNodeMenu(null)
+    },
+    [activeSheetId, duplicateNode, select],
+  )
+
+  const handleDeleteFromMenu = useCallback(
+    (nodeId: string) => {
+      removeNode(activeSheetId, nodeId)
+      setNodeMenu(null)
+    },
+    [activeSheetId, removeNode],
+  )
+
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
       select({ kind: 'node', id: node.id })
       setMenu(null)
+      setNodeMenu(null)
       if (node.type === 'vlan') {
         const docNode = (node.data as { docNode?: VlanDocNode }).docNode
         setHighlightVlanId(docNode?.data.vlanId ?? 0)
@@ -141,6 +219,7 @@ function CanvasInner() {
     (_event, edge) => {
       select({ kind: 'edge', id: edge.id })
       setMenu(null)
+      setNodeMenu(null)
       setHighlightVlanId(null)
     },
     [select, setHighlightVlanId],
@@ -152,6 +231,7 @@ function CanvasInner() {
   const handlePaneClick = useCallback(() => {
     clearSelection()
     setMenu(null)
+    setNodeMenu(null)
     setHighlightVlanId(null)
   }, [clearSelection, setHighlightVlanId])
 
@@ -163,6 +243,7 @@ function CanvasInner() {
   const handleNodeDragStart: OnNodeDrag = useCallback((_event, node) => {
     setDraggingNodeId(node.id)
     setMenu(null)
+    setNodeMenu(null)
   }, [])
 
   const handleNodeDragStop: OnNodeDrag = useCallback(
@@ -218,6 +299,7 @@ function CanvasInner() {
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
+        onNodeContextMenu={handleNodeContextMenu}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         onPaneClick={handlePaneClick}
@@ -228,9 +310,20 @@ function CanvasInner() {
       >
         <Background />
         <Controls />
-        <MiniMap pannable zoomable />
       </ReactFlow>
-      <PaneContextMenu state={menu} onClose={() => setMenu(null)} onAddNode={handleAddNode} />
+      <PaneContextMenu
+        state={menu}
+        onClose={() => setMenu(null)}
+        onAddNode={handleAddNode}
+        onPaste={clipboardNode ? handlePasteAt : undefined}
+      />
+      <NodeContextMenu
+        state={nodeMenu}
+        onClose={() => setNodeMenu(null)}
+        onCopy={handleCopyFromMenu}
+        onDuplicate={handleDuplicateFromMenu}
+        onDelete={handleDeleteFromMenu}
+      />
     </div>
   )
 }

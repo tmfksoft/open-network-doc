@@ -19,6 +19,8 @@ export interface NodesSlice {
   updateNode: (sheetId: string, nodeId: string, patch: Partial<DocNode>) => void
   removeNode: (sheetId: string, nodeId: string) => void
   duplicateNode: (sheetId: string, nodeId: string) => string | undefined
+  /** Inserts a copy of an arbitrary node (e.g. from the clipboard) into `sheetId`. */
+  pasteNode: (sheetId: string, source: DocNode, position?: { x: number; y: number }) => string
   assignNodeToGroup: (sheetId: string, nodeId: string, groupId: string | null) => void
   addEdge: (
     sheetId: string,
@@ -99,20 +101,23 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
   },
 
   duplicateNode: (sheetId, nodeId) => {
-    const docNodes = get().nodesBySheet[sheetId] ?? []
-    const node = docNodes.find((n) => n.id === nodeId)
+    const node = (get().nodesBySheet[sheetId] ?? []).find((n) => n.id === nodeId)
     if (!node) return undefined
+    return get().pasteNode(sheetId, node)
+  },
 
+  pasteNode: (sheetId, source, position) => {
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
-    // Duplicates drop group membership rather than trying to slot into the
-    // grid or preserve absolute position relative to a parent — simpler, and
-    // the copy can be dragged back into a group afterward if wanted.
+    // Pasted/duplicated nodes drop group membership rather than trying to
+    // slot into the grid or preserve absolute position relative to a parent
+    // — simpler, and the copy can be dragged back into a group afterward.
     const copy = {
-      ...node,
+      ...source,
       id,
-      label: `${node.label} copy`,
-      position: { x: node.position.x + 30, y: node.position.y + 30 },
+      sheetId,
+      label: `${source.label} copy`,
+      position: position ?? { x: source.position.x + 30, y: source.position.y + 30 },
       parentId: undefined,
       createdAt: now,
       updatedAt: now,

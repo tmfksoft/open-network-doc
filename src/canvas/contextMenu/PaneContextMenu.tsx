@@ -1,5 +1,6 @@
 import { Menu } from '@mantine/core'
 import { useClickOutside } from '@mantine/hooks'
+import { IconClipboard } from '@tabler/icons-react'
 import type { NodeType } from '../../fileformat/types'
 
 export interface PaneContextMenuState {
@@ -13,6 +14,8 @@ interface PaneContextMenuProps {
   state: PaneContextMenuState | null
   onClose: () => void
   onAddNode: (type: NodeType, flowX: number, flowY: number) => void
+  /** Present only when the clipboard has a node to paste. */
+  onPaste?: (flowX: number, flowY: number) => void
 }
 
 const MENU_ITEMS: { type: NodeType; label: string }[] = [
@@ -24,7 +27,7 @@ const MENU_ITEMS: { type: NodeType; label: string }[] = [
   { type: 'sheet_portal', label: 'Sheet Link' },
 ]
 
-export default function PaneContextMenu({ state, onClose, onAddNode }: PaneContextMenuProps) {
+export default function PaneContextMenu({ state, onClose, onAddNode, onPaste }: PaneContextMenuProps) {
   const ref = useClickOutside(onClose)
 
   if (!state) return null
@@ -43,6 +46,14 @@ export default function PaneContextMenu({ state, onClose, onAddNode }: PaneConte
         />
       </Menu.Target>
       <Menu.Dropdown ref={ref}>
+        {onPaste && (
+          <>
+            <Menu.Item leftSection={<IconClipboard size={14} />} onClick={() => onPaste(state.flowX, state.flowY)}>
+              Paste
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
         <Menu.Label>Add to sheet</Menu.Label>
         {MENU_ITEMS.map((item) => (
           <Menu.Item key={item.type} onClick={() => onAddNode(item.type, state.flowX, state.flowY)}>
