@@ -4,6 +4,7 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  ControlButton,
   useReactFlow,
   type NodeMouseHandler,
   type EdgeMouseHandler,
@@ -11,14 +12,19 @@ import {
   type OnNodeDrag,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { IconMagnet } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
+import { useUiPrefsStore } from '../store/useUiPrefsStore'
 import { getFlowNodesForSheet, getFlowEdgesForSheet } from '../store/selectors'
 import { nodeTypes } from './nodeTypes'
 import { edgeTypes } from './edgeTypes'
 import PaneContextMenu, { type PaneContextMenuState } from './contextMenu/PaneContextMenu'
 import NodeContextMenu, { type NodeContextMenuState } from './contextMenu/NodeContextMenu'
 import { GROUP_DEFAULT_WIDTH, GROUP_DEFAULT_HEIGHT } from './nodes/groupLayoutConstants'
+import { NODE_CARD_DEFAULT_WIDTH, NODE_CARD_DEFAULT_HEIGHT } from './nodes/NodeCard'
 import type { DocNode, NodeType, VlanDocNode } from '../fileformat/types'
+
+const SNAP_GRID: [number, number] = [20, 20]
 
 function CanvasInner() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
@@ -41,6 +47,8 @@ function CanvasInner() {
   const select = useDocumentStore((s) => s.select)
   const clearSelection = useDocumentStore((s) => s.clearSelection)
   const setFocusNode = useDocumentStore((s) => s.setFocusNode)
+  const snapToGrid = useUiPrefsStore((s) => s.snapToGrid)
+  const setSnapToGrid = useUiPrefsStore((s) => s.setSnapToGrid)
 
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [menu, setMenu] = useState<PaneContextMenuState | null>(null)
@@ -155,9 +163,11 @@ function CanvasInner() {
   const handleAddNode = useCallback(
     (type: NodeType, flowX: number, flowY: number) => {
       const id = addNode(activeSheetId, type, { x: flowX, y: flowY }, {})
-      if (type === 'group_header') {
-        updateNode(activeSheetId, id, { width: GROUP_DEFAULT_WIDTH, height: GROUP_DEFAULT_HEIGHT })
-      }
+      const size =
+        type === 'group_header'
+          ? { width: GROUP_DEFAULT_WIDTH, height: GROUP_DEFAULT_HEIGHT }
+          : { width: NODE_CARD_DEFAULT_WIDTH, height: NODE_CARD_DEFAULT_HEIGHT }
+      updateNode(activeSheetId, id, size)
       select({ kind: 'node', id })
       setMenu(null)
     },
@@ -279,7 +289,7 @@ function CanvasInner() {
 
       const targetGroupId = targetGroup?.id ?? null
       if (targetGroupId !== (node.parentId ?? null)) {
-        assignNodeToGroup(activeSheetId, node.id, targetGroupId)
+        assignNodeToGroup(activeSheetId, node.id, targetGroupId, { x: absX, y: absY })
       }
     },
     [activeSheetId, assignNodeToGroup, docNodes],
@@ -304,12 +314,23 @@ function CanvasInner() {
         onNodeDragStop={handleNodeDragStop}
         onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}
+        snapToGrid={snapToGrid}
+        snapGrid={SNAP_GRID}
         colorMode="dark"
         fitView
         fitViewOptions={{ maxZoom: 1 }}
       >
         <Background />
-        <Controls />
+        <Controls>
+          <ControlButton
+            title={snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid'}
+            aria-label={snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid'}
+            className={snapToGrid ? 'react-flow__controls-button-active' : undefined}
+            onClick={() => setSnapToGrid(!snapToGrid)}
+          >
+            <IconMagnet size={16} />
+          </ControlButton>
+        </Controls>
       </ReactFlow>
       <PaneContextMenu
         state={menu}

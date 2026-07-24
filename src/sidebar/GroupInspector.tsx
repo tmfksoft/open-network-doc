@@ -3,6 +3,7 @@ import {
   Stack,
   TextInput,
   Select,
+  Checkbox,
   Title,
   Divider,
   Button,
@@ -52,6 +53,12 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
         <GroupHeaderIcon icon={node.data.icon} logoAssetId={node.data.logoAssetId} size={24} />
         <Text fw={600}>{node.label}</Text>
       </Group>
+      <div>
+        <Text size="xs" c="dimmed">
+          Connection handles
+        </Text>
+        <Text size="sm">{node.data.hideHandles ? 'Hidden' : 'Shown'}</Text>
+      </div>
       <Divider label="Description" labelPosition="left" />
       {node.description ? (
         <MarkdownRenderer content={node.description} />
@@ -130,6 +137,12 @@ function GroupEditForm({ node }: GroupInspectorProps) {
         value={node.data.icon ?? null}
         onChange={(value) => setField('icon', (value ?? undefined) as GroupIconKey | undefined)}
         clearable
+      />
+      <Checkbox
+        label="Hide connection handles"
+        description="Prevents drawing edges directly to/from this group's border"
+        checked={node.data.hideHandles ?? false}
+        onChange={(e) => setField('hideHandles', e.currentTarget.checked)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor

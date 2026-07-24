@@ -54,6 +54,8 @@ export interface GroupHeaderData {
   logoAssetId?: string
   headerColor?: string
   collapsed?: boolean
+  /** Hides the group's connection handles on the canvas; unset/false shows them (default). */
+  hideHandles?: boolean
 }
 
 export interface SheetPortalData {

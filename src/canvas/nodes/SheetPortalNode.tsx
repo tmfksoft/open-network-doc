@@ -23,7 +23,7 @@ export default function SheetPortalNode({ data, selected }: NodeProps) {
 
   return (
     <NodeCard node={docNode} selected={selected}>
-      <Stack gap={4} align="center">
+      <Stack gap={4} align="center" justify="center" h="100%">
         <ThemeIcon variant="light" size={40} radius="md">
           <Icon size={24} />
         </ThemeIcon>
