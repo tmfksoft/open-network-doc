@@ -1,39 +1,36 @@
-import type { KbPage } from '../fileformat/types'
+import type { KbFolder, KbPage } from '../fileformat/types'
 
 export interface KbTreeFolder {
-  name: string
-  path: string
+  /** null for the synthetic root — every real folder has its own KbFolder record. */
+  folder: KbFolder | null
   folders: KbTreeFolder[]
   pages: KbPage[]
 }
 
-/** Builds a virtual folder tree from each page's `/`-delimited `folderPath` — no separate folder table needed. */
-export function buildKbTree(pages: KbPage[]): KbTreeFolder {
-  const folderByPath = new Map<string, KbTreeFolder>()
-  const root: KbTreeFolder = { name: '', path: '', folders: [], pages: [] }
-  folderByPath.set('', root)
+const ROOT_KEY = '__root__'
+const keyFor = (id: string | undefined) => id ?? ROOT_KEY
 
-  function getFolder(path: string): KbTreeFolder {
-    const existing = folderByPath.get(path)
-    if (existing) return existing
-    const parts = path.split('/')
-    const name = parts[parts.length - 1]
-    const parentPath = parts.slice(0, -1).join('/')
-    const parent = getFolder(parentPath)
-    const folder: KbTreeFolder = { name, path, folders: [], pages: [] }
-    parent.folders.push(folder)
-    folderByPath.set(path, folder)
-    return folder
+/** Builds the nav tree from real KbFolder/KbPage entities and their parent/folder ids. */
+export function buildKbTree(folders: KbFolder[], pages: KbPage[]): KbTreeFolder {
+  const nodes = new Map<string, KbTreeFolder>()
+  const root: KbTreeFolder = { folder: null, folders: [], pages: [] }
+  nodes.set(ROOT_KEY, root)
+
+  for (const folder of folders) {
+    nodes.set(folder.id, { folder, folders: [], pages: [] })
   }
-
+  for (const folder of folders) {
+    const parent = nodes.get(keyFor(folder.parentFolderId)) ?? root
+    parent.folders.push(nodes.get(folder.id)!)
+  }
   for (const page of pages) {
-    const path = (page.folderPath ?? '').split('/').filter(Boolean).join('/')
-    getFolder(path).pages.push(page)
+    const parent = nodes.get(keyFor(page.folderId)) ?? root
+    parent.pages.push(page)
   }
 
-  for (const folder of folderByPath.values()) {
-    folder.pages.sort((a, b) => a.orderIndex - b.orderIndex)
-    folder.folders.sort((a, b) => a.name.localeCompare(b.name))
+  for (const node of nodes.values()) {
+    node.folders.sort((a, b) => (a.folder?.orderIndex ?? 0) - (b.folder?.orderIndex ?? 0))
+    node.pages.sort((a, b) => a.orderIndex - b.orderIndex)
   }
 
   return root

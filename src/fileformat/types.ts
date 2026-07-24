@@ -7,7 +7,7 @@ export type NodeType =
   | 'sheet_portal'
   | 'markdown'
 
-export type EdgeType = 'physical_link' | 'logical_link' | 'vlan_membership' | 'vpn_tunnel'
+export type EdgeType = 'physical_link' | 'logical_link' | 'vlan_membership' | 'vpn_tunnel' | 'http' | 'https'
 
 export type DeviceType =
   | 'server'
@@ -53,10 +53,13 @@ export interface GroupHeaderData {
   icon?: string
   /** Uploaded logo asset id; when set, replaces the picked icon on the canvas. */
   logoAssetId?: string
-  headerColor?: string
+  /** Hex color for the group box's fill; unset uses the default dark background. */
+  backgroundColor?: string
+  /** Hex color for the group box's border; unset uses the default border color. */
+  borderColor?: string
   collapsed?: boolean
-  /** Hides the group's connection handles on the canvas; unset/false shows them (default). */
-  hideHandles?: boolean
+  /** Opts this group into showing connection handles (when the sheet-wide handle visibility is on); unset/false keeps it handle-free even then. */
+  showHandles?: boolean
 }
 
 export interface SheetPortalData {
@@ -183,11 +186,24 @@ export interface Sheet {
   updatedAt: string
 }
 
+export interface KbFolder {
+  id: string
+  name: string
+  /** Undefined/absent means it lives at the knowledgebase root. */
+  parentFolderId?: string
+  /** Order among sibling folders within the same parent. */
+  orderIndex: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface KbPage {
   id: string
   slug: string
   title: string
-  folderPath?: string
+  /** Undefined/absent means it lives at the knowledgebase root. */
+  folderId?: string
+  /** Order among sibling pages within the same folder. */
   orderIndex: number
   content?: string
   tags: string[]
@@ -202,6 +218,7 @@ export interface DocumentState {
   nodesBySheet: Record<string, DocNode[]>
   edgesBySheet: Record<string, DocEdge[]>
   kbPages: KbPage[]
+  kbFolders: KbFolder[]
 }
 
 export const CURRENT_FORMAT_VERSION = 1

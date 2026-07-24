@@ -4,7 +4,7 @@ import { NetworkNodeShell } from './NetworkNodeShell'
 import { networkGroupIcon } from './nodeTypeMeta'
 
 export default function NetworkGroupNode({ data, selected }: NodeProps) {
-  const { docNode } = data as unknown as { docNode: NetworkGroupDocNode }
+  const { docNode, handlesVisible } = data as unknown as { docNode: NetworkGroupDocNode; handlesVisible?: boolean }
   const Icon = networkGroupIcon(docNode.label)
 
   return (
@@ -14,6 +14,7 @@ export default function NetworkGroupNode({ data, selected }: NodeProps) {
       label={docNode.label}
       subtext={docNode.data.cidr}
       selected={selected}
+      handlesVisible={handlesVisible}
     />
   )
 }

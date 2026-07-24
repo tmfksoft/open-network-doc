@@ -6,4 +6,6 @@ export const edgeTypes: EdgeTypes = {
   logical_link: PhysicalLinkEdge,
   vlan_membership: PhysicalLinkEdge,
   vpn_tunnel: PhysicalLinkEdge,
+  http: PhysicalLinkEdge,
+  https: PhysicalLinkEdge,
 }

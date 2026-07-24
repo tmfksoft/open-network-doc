@@ -59,6 +59,17 @@ CREATE TABLE edges (
 );
 CREATE INDEX idx_edges_sheet ON edges(sheet_id);
 
+-- Real folder entities (not a virtual tree derived from a path string) so the
+-- knowledgebase nav can drag-reorder and nest them independently of pages.
+CREATE TABLE kb_folders (
+  id                TEXT PRIMARY KEY,
+  name              TEXT NOT NULL,
+  parent_folder_id  TEXT,
+  order_index       INTEGER NOT NULL,
+  created_at        TEXT NOT NULL,
+  updated_at        TEXT NOT NULL
+);
+
 -- kb_pages.tags is a JSON-encoded string array, not a kb_tags/kb_page_tags join
 -- table — same pragmatic reasoning as the nodes/edges data_json columns above,
 -- and a page's tag list is small enough that normalizing it buys nothing here.
@@ -67,7 +78,7 @@ CREATE TABLE kb_pages (
   id          TEXT PRIMARY KEY,
   slug        TEXT NOT NULL UNIQUE,
   title       TEXT NOT NULL,
-  folder_path TEXT,
+  folder_id   TEXT,
   order_index INTEGER NOT NULL,
   tags_json   TEXT NOT NULL DEFAULT '[]',
   created_at  TEXT NOT NULL,

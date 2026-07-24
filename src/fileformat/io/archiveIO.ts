@@ -3,10 +3,11 @@ import { writeMeta, readMeta } from '../sqlite/repository/metaRepo'
 import { writeSheets, readSheets } from '../sqlite/repository/sheetsRepo'
 import { writeNodes, readNodes } from '../sqlite/repository/nodesRepo'
 import { writeEdges, readEdges } from '../sqlite/repository/edgesRepo'
-import { writeKbPages, readKbPages } from '../sqlite/repository/kbRepo'
+import { writeKbFolders, readKbFolders, writeKbPages, readKbPages } from '../sqlite/repository/kbRepo'
 import { buildArchive, readArchive, textFile, readText, type ArchiveFiles } from '../zip/archive'
 import { buildManifest, parseManifest, isSupportedFormatVersion } from '../zip/manifest'
 import { getAllAssets, extensionForMime, mimeForExtension, registerAsset, pruneAssets } from '../../assets-runtime/assetStore'
+import { migrateLegacyKbFolderPaths } from './kbFolderMigration'
 import type { DocumentState, DocNode, DocEdge, KbPage } from '../types'
 
 export class UnsupportedFormatError extends Error {}
@@ -46,6 +47,7 @@ export async function buildArchiveBytes(state: DocumentState): Promise<Uint8Arra
   const allEdges = Object.values(state.edgesBySheet).flat()
   writeNodes(db, allNodes)
   writeEdges(db, allEdges)
+  writeKbFolders(db, state.kbFolders)
   writeKbPages(db, state.kbPages)
 
   const dbBytes = db.export()
@@ -108,8 +110,15 @@ export async function parseArchiveBytes(bytes: Uint8Array): Promise<DocumentStat
   const sheets = readSheets(db)
   const nodes = readNodes(db)
   const edges = readEdges(db)
-  const kbPages = readKbPages(db)
+  const kbFoldersRaw = readKbFolders(db)
+  const { pages: kbPagesRaw, legacyFolderPaths } = readKbPages(db)
   db.close()
+
+  const { pages: kbPages, folders: kbFolders } = migrateLegacyKbFolderPaths(
+    kbPagesRaw,
+    kbFoldersRaw,
+    legacyFolderPaths,
+  )
 
   for (const node of nodes) {
     const mdBytes = files[nodeMarkdownPath(node.id)]
@@ -147,5 +156,6 @@ export async function parseArchiveBytes(bytes: Uint8Array): Promise<DocumentStat
     nodesBySheet,
     edgesBySheet,
     kbPages,
+    kbFolders,
   }
 }

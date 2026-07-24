@@ -12,6 +12,8 @@ export interface UiSlice {
   /** VLAN ID to highlight matching devices/VLAN nodes/edges for; null when nothing is highlighted. */
   highlightVlanId: number | null
   dirty: boolean
+  /** True from the moment a save is kicked off until it settles — drives the header's "Saving..." indicator. */
+  saving: boolean
   setMode: (mode: AppMode) => void
   setActiveSheet: (sheetId: string) => void
   setActiveKbPage: (pageId: string | null) => void
@@ -21,6 +23,7 @@ export interface UiSlice {
   setHighlightVlanId: (vlanId: number | null) => void
   markDirty: () => void
   markClean: () => void
+  setSaving: (saving: boolean) => void
 }
 
 export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
@@ -31,6 +34,7 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
   focusNodeId: null,
   highlightVlanId: null,
   dirty: false,
+  saving: false,
   setMode: (mode) => set({ mode }),
   setActiveSheet: (sheetId) => set({ activeSheetId: sheetId, selection: null }),
   setActiveKbPage: (pageId) => set({ activeKbPageId: pageId }),
@@ -40,4 +44,5 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
   setHighlightVlanId: (vlanId) => set({ highlightVlanId: vlanId }),
   markDirty: () => set({ dirty: true }),
   markClean: () => set({ dirty: false }),
+  setSaving: (saving) => set({ saving }),
 })

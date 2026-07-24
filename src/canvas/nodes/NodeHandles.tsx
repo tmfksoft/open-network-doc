@@ -1,8 +1,16 @@
+import type { CSSProperties } from 'react'
 import { Handle, Position } from '@xyflow/react'
 
 interface NodeHandlesProps {
   width?: number
   height?: number
+  /**
+   * Controls visual/interactive visibility only — handles always stay
+   * mounted so React Flow can keep computing paths for edges already
+   * connected to them. Unmounting a connected handle makes React Flow
+   * silently stop rendering that edge's path entirely.
+   */
+  visible?: boolean
 }
 
 /** Size (px) along an edge below which a node only gets a single, centered connection point. */
@@ -25,16 +33,19 @@ function slotCount(size: number): number {
 // resolving correctly. Only once a node is resized large enough for more than
 // one handle on a side do the indexed ids (`${position}-source-0`, ...) come
 // into play — ids no pre-existing document could ever reference.
-function side(position: Position, count: number) {
+function side(position: Position, count: number, visibilityStyle: CSSProperties) {
   if (count <= 1) {
     return [
-      <Handle key={`${position}-source`} id={`${position}-source`} type="source" position={position} />,
-      <Handle key={`${position}-target`} id={`${position}-target`} type="target" position={position} />,
+      <Handle key={`${position}-source`} id={`${position}-source`} type="source" position={position} style={visibilityStyle} />,
+      <Handle key={`${position}-target`} id={`${position}-target`} type="target" position={position} style={visibilityStyle} />,
     ]
   }
   return Array.from({ length: count }).flatMap((_, i) => {
     const offset = `${((i + 1) / (count + 1)) * 100}%`
-    const style = position === Position.Top || position === Position.Bottom ? { left: offset } : { top: offset }
+    const style = {
+      ...visibilityStyle,
+      ...(position === Position.Top || position === Position.Bottom ? { left: offset } : { top: offset }),
+    }
     const sourceId = `${position}-source-${i}`
     const targetId = `${position}-target-${i}`
     return [
@@ -51,16 +62,17 @@ function side(position: Position, count: number) {
  * height — so a narrow-but-tall node ends up with a single handle on top
  * and bottom but several spaced down each side, and vice versa.
  */
-export function NodeHandles({ width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT }: NodeHandlesProps) {
+export function NodeHandles({ width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT, visible = true }: NodeHandlesProps) {
   const horizontalSlots = slotCount(width)
   const verticalSlots = slotCount(height)
+  const visibilityStyle: CSSProperties = visible ? {} : { opacity: 0, pointerEvents: 'none' }
 
   return (
     <>
-      {side(Position.Top, horizontalSlots)}
-      {side(Position.Bottom, horizontalSlots)}
-      {side(Position.Left, verticalSlots)}
-      {side(Position.Right, verticalSlots)}
+      {side(Position.Top, horizontalSlots, visibilityStyle)}
+      {side(Position.Bottom, horizontalSlots, visibilityStyle)}
+      {side(Position.Left, verticalSlots, visibilityStyle)}
+      {side(Position.Right, verticalSlots, visibilityStyle)}
     </>
   )
 }

@@ -4,6 +4,8 @@ import {
   TextInput,
   Select,
   Checkbox,
+  ColorInput,
+  ColorSwatch,
   Divider,
   Button,
   Group,
@@ -19,6 +21,16 @@ import { registerAsset } from '../assets-runtime/assetStore'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+
+const GROUP_COLOR_SWATCHES = [
+  '#e03131',
+  '#f08c00',
+  '#2f9e44',
+  '#1971c2',
+  '#7048e8',
+  '#e64980',
+  '#495057',
+]
 
 interface GroupInspectorProps {
   node: GroupHeaderDocNode
@@ -76,12 +88,38 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
         <GroupHeaderIcon icon={node.data.icon} logoAssetId={node.data.logoAssetId} size={24} />
         <Text fw={600}>{node.label}</Text>
       </Group>
-      <div>
-        <Text size="xs" c="dimmed">
-          Connection handles
-        </Text>
-        <Text size="sm">{node.data.hideHandles ? 'Hidden' : 'Shown'}</Text>
-      </div>
+      <Group grow>
+        <div>
+          <Text size="xs" c="dimmed">
+            Background
+          </Text>
+          {node.data.backgroundColor ? (
+            <Group gap={6} mt={2}>
+              <ColorSwatch color={node.data.backgroundColor} size={16} />
+              <Text size="sm">{node.data.backgroundColor}</Text>
+            </Group>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Default
+            </Text>
+          )}
+        </div>
+        <div>
+          <Text size="xs" c="dimmed">
+            Border
+          </Text>
+          {node.data.borderColor ? (
+            <Group gap={6} mt={2}>
+              <ColorSwatch color={node.data.borderColor} size={16} />
+              <Text size="sm">{node.data.borderColor}</Text>
+            </Group>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Default
+            </Text>
+          )}
+        </div>
+      </Group>
       <Divider label="Description" labelPosition="left" />
       {node.description ? (
         <MarkdownRenderer content={node.description} />
@@ -161,19 +199,36 @@ function GroupEditForm({ node, draft, setDraft }: GroupEditFormProps) {
         />
       </div>
 
-      <Select
-        label="Icon"
-        description={draft.data.logoAssetId ? 'Used when the logo above is removed' : undefined}
-        data={GROUP_ICON_KEYS.map((value) => ({ value, label: GROUP_ICON_LABELS[value] }))}
-        value={draft.data.icon ?? null}
-        onChange={(value) => setField('icon', (value ?? undefined) as GroupIconKey | undefined)}
-        clearable
-      />
+      {!draft.data.logoAssetId && (
+        <Select
+          label="Icon"
+          data={GROUP_ICON_KEYS.map((value) => ({ value, label: GROUP_ICON_LABELS[value] }))}
+          value={draft.data.icon ?? null}
+          onChange={(value) => setField('icon', (value ?? undefined) as GroupIconKey | undefined)}
+          clearable
+        />
+      )}
+      <Group grow>
+        <ColorInput
+          label="Background"
+          placeholder="Default"
+          swatches={GROUP_COLOR_SWATCHES}
+          value={draft.data.backgroundColor ?? ''}
+          onChange={(value) => setField('backgroundColor', value || undefined)}
+        />
+        <ColorInput
+          label="Border"
+          placeholder="Default"
+          swatches={GROUP_COLOR_SWATCHES}
+          value={draft.data.borderColor ?? ''}
+          onChange={(value) => setField('borderColor', value || undefined)}
+        />
+      </Group>
       <Checkbox
-        label="Hide connection handles"
-        description="Prevents drawing edges directly to/from this group's border"
-        checked={draft.data.hideHandles ?? false}
-        onChange={(e) => setField('hideHandles', e.currentTarget.checked)}
+        label="Show connection handles"
+        description="Allows drawing edges directly to/from this group's border, when something on the sheet is selected"
+        checked={draft.data.showHandles ?? false}
+        onChange={(e) => setField('showHandles', e.currentTarget.checked)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor

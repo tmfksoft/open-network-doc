@@ -43,6 +43,7 @@ export default function FileMenu() {
   }
 
   const handleSave = async (saveAs: boolean) => {
+    useDocumentStore.getState().setSaving(true)
     try {
       const result = await saveDocument({ saveAs })
       if (result.saved) {
@@ -54,6 +55,8 @@ export default function FileMenu() {
         message: err instanceof Error ? err.message : String(err),
         color: 'red',
       })
+    } finally {
+      useDocumentStore.getState().setSaving(false)
     }
   }
 

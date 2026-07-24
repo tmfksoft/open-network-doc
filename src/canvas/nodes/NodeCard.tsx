@@ -22,11 +22,13 @@ interface NodeCardProps {
   accentColor?: string
   /** Node types with no connection points at all (e.g. markdown notes) — still resizable, just not linkable. */
   hideHandles?: boolean
+  /** Global: handles only render once something on the sheet is selected. */
+  handlesVisible?: boolean
   children: ReactNode
 }
 
 /** Shared Paper + connection-handle + hover-summary wrapper for all connectable canvas node types. */
-export function NodeCard({ node, selected, highlighted, accentColor, hideHandles, children }: NodeCardProps) {
+export function NodeCard({ node, selected, highlighted, accentColor, hideHandles, handlesVisible, children }: NodeCardProps) {
   const borderColor = selected
     ? 'var(--mantine-color-blue-6)'
     : highlighted
@@ -49,7 +51,11 @@ export function NodeCard({ node, selected, highlighted, accentColor, hideHandles
           width,
           height,
           borderColor,
-          borderWidth: selected || highlighted ? 2 : 1,
+          // Fixed width (never toggling 1px -> 2px on selection) so the
+          // inner content box doesn't shrink by a couple of px when a
+          // node gets selected — selection is conveyed by color + shadow
+          // instead.
+          borderWidth: 1,
           boxShadow: highlighted ? `0 0 0 3px ${HIGHLIGHT_COLOR}55` : undefined,
         }}
       >
@@ -60,7 +66,7 @@ export function NodeCard({ node, selected, highlighted, accentColor, hideHandles
           lineStyle={{ borderColor: 'var(--mantine-color-blue-6)' }}
           handleStyle={{ width: 8, height: 8, borderRadius: 2 }}
         />
-        {!hideHandles && <NodeHandles width={width} height={height} />}
+        {!hideHandles && <NodeHandles width={width} height={height} visible={handlesVisible} />}
         {children}
       </Paper>
     </NodeHoverCard>

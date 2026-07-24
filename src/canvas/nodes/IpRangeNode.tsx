@@ -4,7 +4,7 @@ import { NetworkNodeShell } from './NetworkNodeShell'
 import { IP_RANGE_ICON } from './nodeTypeMeta'
 
 export default function IpRangeNode({ data, selected }: NodeProps) {
-  const { docNode } = data as unknown as { docNode: IpRangeDocNode }
+  const { docNode, handlesVisible } = data as unknown as { docNode: IpRangeDocNode; handlesVisible?: boolean }
   const Icon = IP_RANGE_ICON
   const range = docNode.data
   const subtext =
@@ -18,6 +18,7 @@ export default function IpRangeNode({ data, selected }: NodeProps) {
       label={docNode.label}
       subtext={subtext}
       selected={selected}
+      handlesVisible={handlesVisible}
     />
   )
 }

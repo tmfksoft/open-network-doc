@@ -6,7 +6,7 @@ import { SHEET_PORTAL_ICON } from './nodeTypeMeta'
 import { useDocumentStore } from '../../store/useDocumentStore'
 
 export default function SheetPortalNode({ data, selected }: NodeProps) {
-  const { docNode } = data as unknown as { docNode: SheetPortalDocNode }
+  const { docNode, handlesVisible } = data as unknown as { docNode: SheetPortalDocNode; handlesVisible?: boolean }
   const portal = docNode.data
   const Icon = SHEET_PORTAL_ICON
   const sheets = useDocumentStore((s) => s.sheets)
@@ -22,7 +22,7 @@ export default function SheetPortalNode({ data, selected }: NodeProps) {
   }
 
   return (
-    <NodeCard node={docNode} selected={selected}>
+    <NodeCard node={docNode} selected={selected} handlesVisible={handlesVisible}>
       <Stack gap={4} align="center" justify="center" h="100%">
         <ThemeIcon variant="light" size={40} radius="md">
           <Icon size={24} />

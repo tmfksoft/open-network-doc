@@ -5,7 +5,11 @@ import { DEVICE_TYPE_LABELS } from './deviceIconMap'
 import { NetworkNodeShell } from './NetworkNodeShell'
 
 export default function DeviceNode({ data, selected }: NodeProps) {
-  const { docNode, highlighted } = data as unknown as { docNode: DeviceDocNode; highlighted?: boolean }
+  const { docNode, highlighted, handlesVisible } = data as unknown as {
+    docNode: DeviceDocNode
+    highlighted?: boolean
+    handlesVisible?: boolean
+  }
 
   return (
     <NetworkNodeShell
@@ -16,6 +20,7 @@ export default function DeviceNode({ data, selected }: NodeProps) {
       selected={selected}
       highlighted={highlighted}
       logoAssetId={docNode.data.iconAssetId}
+      handlesVisible={handlesVisible}
     />
   )
 }

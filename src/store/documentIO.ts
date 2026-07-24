@@ -11,6 +11,7 @@ export function getDocumentStateSnapshot(): DocumentState {
     nodesBySheet: s.nodesBySheet,
     edgesBySheet: s.edgesBySheet,
     kbPages: s.kbPages,
+    kbFolders: s.kbFolders,
   }
 }
 
@@ -22,6 +23,7 @@ export function hydrateDocumentState(state: DocumentState): void {
     nodesBySheet: state.nodesBySheet,
     edgesBySheet: state.edgesBySheet,
     kbPages: state.kbPages,
+    kbFolders: state.kbFolders,
     activeSheetId: state.sheets[0]?.id ?? '',
     activeKbPageId: null,
     mode: 'diagram',
@@ -40,6 +42,7 @@ export function createNewDocument(): void {
     nodesBySheet: {},
     edgesBySheet: {},
     kbPages: [],
+    kbFolders: [],
     activeSheetId: '',
     activeKbPageId: null,
     mode: 'diagram',

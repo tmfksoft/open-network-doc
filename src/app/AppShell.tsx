@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { AppShell as MantineAppShell, Group, Badge } from '@mantine/core'
+import { AppShell as MantineAppShell, Group, Badge, Loader } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
 import { useUiPrefsStore } from '../store/useUiPrefsStore'
 import ReactFlowCanvas from '../canvas/ReactFlowCanvas'
@@ -16,6 +16,7 @@ import KbPageView from '../kb/KbPageView'
 
 export default function AppShell() {
   const dirty = useDocumentStore((s) => s.dirty)
+  const saving = useDocumentStore((s) => s.saving)
   const selection = useDocumentStore((s) => s.selection)
   const mode = useDocumentStore((s) => s.mode)
   const navbarWidth = useUiPrefsStore((s) => s.navbarWidth)
@@ -65,10 +66,16 @@ export default function AppShell() {
             <Group gap="xs">
               <FileMenu />
               <DocTitle />
-              {dirty && (
-                <Badge size="xs" color="yellow" variant="light">
-                  unsaved
+              {saving ? (
+                <Badge size="xs" color="blue" variant="light" leftSection={<Loader size={10} color="blue" />}>
+                  Saving...
                 </Badge>
+              ) : (
+                dirty && (
+                  <Badge size="xs" color="yellow" variant="light">
+                    unsaved
+                  </Badge>
+                )
               )}
             </Group>
             <ModeSwitch />
