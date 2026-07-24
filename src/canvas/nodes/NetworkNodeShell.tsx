@@ -25,7 +25,7 @@ export function NetworkNodeShell({
 }: NetworkNodeShellProps) {
   return (
     <NodeCard node={node} selected={selected} highlighted={highlighted} accentColor={accentColor}>
-      <Stack gap={4} align="center">
+      <Stack gap={4} align="center" justify="center" h="100%">
         <ThemeIcon variant="light" color={accentColor} size={40} radius="md">
           {icon}
         </ThemeIcon>

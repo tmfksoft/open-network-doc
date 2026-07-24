@@ -4,7 +4,6 @@ import { applyNodeChanges } from '@xyflow/react'
 import type { DocumentStore } from '../useDocumentStore'
 import type { DocNode, DocEdge, NodeType, EdgeType, NodeTypeData } from '../../fileformat/types'
 import { toFlowNode } from '../selectors'
-import { relayoutGroupNodes } from '../groupLayout'
 
 export interface NodesSlice {
   nodesBySheet: Record<string, DocNode[]>
@@ -21,7 +20,12 @@ export interface NodesSlice {
   duplicateNode: (sheetId: string, nodeId: string) => string | undefined
   /** Inserts a copy of an arbitrary node (e.g. from the clipboard) into `sheetId`. */
   pasteNode: (sheetId: string, source: DocNode, position?: { x: number; y: number }) => string
-  assignNodeToGroup: (sheetId: string, nodeId: string, groupId: string | null) => void
+  assignNodeToGroup: (
+    sheetId: string,
+    nodeId: string,
+    groupId: string | null,
+    absolutePosition?: { x: number; y: number },
+  ) => void
   addEdge: (
     sheetId: string,
     sourceNodeId: string,
@@ -130,7 +134,7 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
     return id
   },
 
-  assignNodeToGroup: (sheetId, nodeId, groupId) => {
+  assignNodeToGroup: (sheetId, nodeId, groupId, absolutePosition) => {
     set((state) => {
       const docNodes = state.nodesBySheet[sheetId] ?? []
       const node = docNodes.find((n) => n.id === nodeId)
@@ -138,15 +142,20 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
 
       const previousGroupId = node.parentId
 
-      let nextNodes = docNodes.map((n) => {
+      // No grid — a node keeps whatever position it was dropped at, just
+      // reparented. `absolutePosition` (the node's sheet-space position at
+      // drop time) is converted relative to the new group's own position;
+      // leaving a group does the inverse, relative-to-parent -> absolute.
+      const nextNodes = docNodes.map((n) => {
         if (n.id !== nodeId) return n
         if (groupId) {
-          // Position doesn't matter here — relayoutGroupNodes below will
-          // place it into the next free grid cell.
-          return { ...n, parentId: groupId, updatedAt: new Date().toISOString() } as DocNode
+          const group = docNodes.find((g) => g.id === groupId)
+          const abs = absolutePosition ?? n.position
+          const position = group
+            ? { x: abs.x - group.position.x, y: abs.y - group.position.y }
+            : abs
+          return { ...n, parentId: groupId, position, updatedAt: new Date().toISOString() } as DocNode
         }
-        // Leaving a group: convert the relative position back to an absolute
-        // one (relative to the old group's own position) so it doesn't jump.
         const oldGroup = previousGroupId ? docNodes.find((g) => g.id === previousGroupId) : undefined
         const position = oldGroup
           ? { x: oldGroup.position.x + n.position.x, y: oldGroup.position.y + n.position.y }
@@ -158,11 +167,6 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
           updatedAt: new Date().toISOString(),
         } as DocNode
       })
-
-      if (groupId) nextNodes = relayoutGroupNodes(nextNodes, groupId)
-      if (previousGroupId && previousGroupId !== groupId) {
-        nextNodes = relayoutGroupNodes(nextNodes, previousGroupId)
-      }
 
       return {
         nodesBySheet: { ...state.nodesBySheet, [sheetId]: nextNodes },
@@ -254,18 +258,8 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
 
     if (!changedAny && removedIds.size === 0) return
 
-    // If a group's width changed (resize), re-flow its children into the grid.
-    let finalNodes = nextNodes
-    for (const id of touchedIds) {
-      const before = docNodes.find((n) => n.id === id)
-      const after = nextById.get(id)
-      if (before?.type === 'group_header' && after && before.width !== (after.width ?? before.width)) {
-        finalNodes = relayoutGroupNodes(finalNodes, id)
-      }
-    }
-
     set((state) => ({
-      nodesBySheet: { ...state.nodesBySheet, [sheetId]: finalNodes },
+      nodesBySheet: { ...state.nodesBySheet, [sheetId]: nextNodes },
       dirty: state.dirty || changes.some((c) => c.type !== 'select'),
     }))
   },

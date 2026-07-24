@@ -1,11 +1,17 @@
 import type { ReactNode } from 'react'
 import { Paper } from '@mantine/core'
+import { NodeResizer } from '@xyflow/react'
 import { NodeHandles } from './NodeHandles'
 import NodeHoverCard from '../popovers/NodeHoverCard'
 import type { DocNode } from '../../fileformat/types'
 
 /** Amber "trace this VLAN" glow, distinct from the blue selection outline. */
 const HIGHLIGHT_COLOR = '#fab005'
+
+export const NODE_CARD_DEFAULT_WIDTH = 180
+export const NODE_CARD_DEFAULT_HEIGHT = 113
+const MIN_WIDTH = 110
+const MIN_HEIGHT = 70
 
 interface NodeCardProps {
   node: DocNode
@@ -27,6 +33,9 @@ export function NodeCard({ node, selected, highlighted, accentColor, children }:
         ? `var(--mantine-color-${accentColor}-6)`
         : undefined
 
+  const width = node.width ?? NODE_CARD_DEFAULT_WIDTH
+  const height = node.height ?? NODE_CARD_DEFAULT_HEIGHT
+
   return (
     <NodeHoverCard node={node}>
       <Paper
@@ -34,14 +43,22 @@ export function NodeCard({ node, selected, highlighted, accentColor, children }:
         shadow={selected ? 'md' : 'xs'}
         radius="md"
         p="sm"
-        w={180}
         style={{
+          width,
+          height,
           borderColor,
           borderWidth: selected || highlighted ? 2 : 1,
           boxShadow: highlighted ? `0 0 0 3px ${HIGHLIGHT_COLOR}55` : undefined,
         }}
       >
-        <NodeHandles />
+        <NodeResizer
+          isVisible={selected}
+          minWidth={MIN_WIDTH}
+          minHeight={MIN_HEIGHT}
+          lineStyle={{ borderColor: 'var(--mantine-color-blue-6)' }}
+          handleStyle={{ width: 8, height: 8, borderRadius: 2 }}
+        />
+        <NodeHandles width={width} height={height} />
         {children}
       </Paper>
     </NodeHoverCard>

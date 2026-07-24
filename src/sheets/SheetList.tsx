@@ -46,6 +46,7 @@ export default function SheetList() {
                 onDoubleClick={() => setRenamingId(sheet.id)}
                 style={{
                   flex: 1,
+                  minWidth: 0,
                   padding: '6px 8px',
                   borderRadius: 4,
                   backgroundColor:

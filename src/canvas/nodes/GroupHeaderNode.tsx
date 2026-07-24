@@ -21,7 +21,7 @@ export default function GroupHeaderNode({ data, selected }: NodeProps) {
           opacity: 0.9,
         }}
       >
-        <NodeHandles />
+        <NodeHandles width={docNode.width} height={docNode.height} />
         <NodeResizer
           isVisible={selected}
           minWidth={GROUP_MIN_WIDTH}

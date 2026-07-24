@@ -6,3 +6,26 @@ body,
   height: 100%;
   width: 100%;
 }
+
+/* Edge labels (the little type-icon pill rendered via EdgeLabelRenderer) live
+   in a separate DOM layer from the SVG edge paths, and by default stack
+   below regular nodes/groups even though the edge line itself renders above
+   them — lift the whole label layer so both halves of an edge stay together
+   visually. Still well under the dragging-node elevation (10000+) so an
+   actively dragged node stays on top of edge labels while moving. */
+.react-flow__edgelabel-renderer {
+  z-index: 1000;
+}
+
+/* Toggled state for custom Controls buttons (e.g. the snap-to-grid magnet). */
+.react-flow__controls-button-active {
+  background: var(--mantine-color-blue-6) !important;
+}
+.react-flow__controls-button-active svg {
+  fill: white;
+}
+
+.app-navbar-resize-handle:hover {
+  background-color: var(--mantine-color-blue-6);
+  opacity: 0.5;
+}
