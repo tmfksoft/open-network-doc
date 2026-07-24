@@ -18,6 +18,7 @@ export interface NodesSlice {
   ) => string
   updateNode: (sheetId: string, nodeId: string, patch: Partial<DocNode>) => void
   removeNode: (sheetId: string, nodeId: string) => void
+  duplicateNode: (sheetId: string, nodeId: string) => string | undefined
   assignNodeToGroup: (sheetId: string, nodeId: string, groupId: string | null) => void
   addEdge: (
     sheetId: string,
@@ -95,6 +96,33 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
       selection: state.selection?.id === nodeId ? null : state.selection,
       dirty: true,
     }))
+  },
+
+  duplicateNode: (sheetId, nodeId) => {
+    const docNodes = get().nodesBySheet[sheetId] ?? []
+    const node = docNodes.find((n) => n.id === nodeId)
+    if (!node) return undefined
+
+    const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+    // Duplicates drop group membership rather than trying to slot into the
+    // grid or preserve absolute position relative to a parent — simpler, and
+    // the copy can be dragged back into a group afterward if wanted.
+    const copy = {
+      ...node,
+      id,
+      label: `${node.label} copy`,
+      position: { x: node.position.x + 30, y: node.position.y + 30 },
+      parentId: undefined,
+      createdAt: now,
+      updatedAt: now,
+    } as DocNode
+
+    set((state) => ({
+      nodesBySheet: { ...state.nodesBySheet, [sheetId]: [...(state.nodesBySheet[sheetId] ?? []), copy] },
+      dirty: true,
+    }))
+    return id
   },
 
   assignNodeToGroup: (sheetId, nodeId, groupId) => {

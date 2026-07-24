@@ -3,7 +3,6 @@ import {
   Stack,
   TextInput,
   Select,
-  Textarea,
   Title,
   Divider,
   Button,
@@ -18,6 +17,8 @@ import { useDocumentStore } from '../store/useDocumentStore'
 import type { DeviceDocNode, DeviceData, DeviceType } from '../fileformat/types'
 import { DeviceTypeIcon } from '../canvas/nodes/deviceIcons'
 import { DEVICE_TYPE_LABELS } from '../canvas/nodes/deviceIconMap'
+import MarkdownEditor from '../markdown/MarkdownEditor'
+import MarkdownRenderer from '../markdown/MarkdownRenderer'
 
 const DEVICE_TYPES: DeviceType[] = [
   'server',
@@ -85,13 +86,13 @@ function DeviceReadOnlyView({ node }: DeviceInspectorProps) {
       <FieldRow label="Vendor" value={node.data.vendor} />
       <FieldRow label="Model" value={node.data.model} />
       <Divider label="Description" labelPosition="left" />
-      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-        {node.description || (
-          <Text component="span" c="dimmed">
-            No description.
-          </Text>
-        )}
-      </Text>
+      {node.description ? (
+        <MarkdownRenderer content={node.description} />
+      ) : (
+        <Text size="sm" c="dimmed">
+          No description.
+        </Text>
+      )}
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeNode(node.sheetId, node.id)}>
         Delete device
@@ -161,12 +162,9 @@ function DeviceEditForm({ node }: DeviceInspectorProps) {
         onBlur={(e) => setField('model', e.currentTarget.value)}
       />
       <Divider label="Description" labelPosition="left" />
-      <Textarea
-        placeholder="Markdown description..."
-        minRows={6}
-        autosize
-        defaultValue={node.description ?? ''}
-        onBlur={(e) => updateNode(node.sheetId, node.id, { description: e.currentTarget.value })}
+      <MarkdownEditor
+        value={node.description ?? ''}
+        onCommit={(value) => updateNode(node.sheetId, node.id, { description: value })}
       />
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeNode(node.sheetId, node.id)}>

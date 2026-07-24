@@ -3,6 +3,10 @@ import { useDocumentStore } from '../store/useDocumentStore'
 import DeviceInspector from './DeviceInspector'
 import EdgeInspector from './EdgeInspector'
 import GroupInspector from './GroupInspector'
+import NetworkGroupInspector from './NetworkGroupInspector'
+import VlanInspector from './VlanInspector'
+import IpRangeInspector from './IpRangeInspector'
+import SheetPortalInspector from './SheetPortalInspector'
 
 export default function InspectorPanel() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
@@ -34,13 +38,13 @@ export default function InspectorPanel() {
       return <DeviceInspector key={node.id} node={node} />
     case 'group_header':
       return <GroupInspector key={node.id} node={node} />
-    default:
-      return (
-        <Stack p="md">
-          <Text size="sm" c="dimmed">
-            Inspector for "{node.type}" nodes is coming soon.
-          </Text>
-        </Stack>
-      )
+    case 'network_group':
+      return <NetworkGroupInspector key={node.id} node={node} />
+    case 'vlan':
+      return <VlanInspector key={node.id} node={node} />
+    case 'ip_range':
+      return <IpRangeInspector key={node.id} node={node} />
+    case 'sheet_portal':
+      return <SheetPortalInspector key={node.id} node={node} />
   }
 }

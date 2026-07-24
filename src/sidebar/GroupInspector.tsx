@@ -3,7 +3,6 @@ import {
   Stack,
   TextInput,
   Select,
-  Textarea,
   Title,
   Divider,
   Button,
@@ -16,6 +15,8 @@ import { useDocumentStore } from '../store/useDocumentStore'
 import type { GroupHeaderDocNode, GroupHeaderData } from '../fileformat/types'
 import { GroupTypeIcon } from '../canvas/nodes/GroupTypeIcon'
 import { GROUP_ICON_KEYS, GROUP_ICON_LABELS, type GroupIconKey } from '../canvas/nodes/groupIconMap'
+import MarkdownEditor from '../markdown/MarkdownEditor'
+import MarkdownRenderer from '../markdown/MarkdownRenderer'
 
 interface GroupInspectorProps {
   node: GroupHeaderDocNode
@@ -51,13 +52,13 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
         <Text fw={600}>{node.label}</Text>
       </Group>
       <Divider label="Description" labelPosition="left" />
-      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-        {node.description || (
-          <Text component="span" c="dimmed">
-            No description.
-          </Text>
-        )}
-      </Text>
+      {node.description ? (
+        <MarkdownRenderer content={node.description} />
+      ) : (
+        <Text size="sm" c="dimmed">
+          No description.
+        </Text>
+      )}
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeNode(node.sheetId, node.id)}>
         Delete group
@@ -89,12 +90,9 @@ function GroupEditForm({ node }: GroupInspectorProps) {
         clearable
       />
       <Divider label="Description" labelPosition="left" />
-      <Textarea
-        placeholder="Markdown description..."
-        minRows={6}
-        autosize
-        defaultValue={node.description ?? ''}
-        onBlur={(e) => updateNode(node.sheetId, node.id, { description: e.currentTarget.value })}
+      <MarkdownEditor
+        value={node.description ?? ''}
+        onCommit={(value) => updateNode(node.sheetId, node.id, { description: value })}
       />
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeNode(node.sheetId, node.id)}>

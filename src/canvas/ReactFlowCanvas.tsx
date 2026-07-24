@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -18,10 +18,12 @@ import { nodeTypes } from './nodeTypes'
 import { edgeTypes } from './edgeTypes'
 import PaneContextMenu, { type PaneContextMenuState } from './contextMenu/PaneContextMenu'
 import { GROUP_DEFAULT_WIDTH, GROUP_DEFAULT_HEIGHT } from './nodes/groupLayoutConstants'
+import type { NodeType } from '../fileformat/types'
 
 function CanvasInner() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
   const selection = useDocumentStore((s) => s.selection)
+  const focusNodeId = useDocumentStore((s) => s.focusNodeId)
   const docNodes = useDocumentStore((s) => s.nodesBySheet[activeSheetId] ?? [])
   const docEdges = useDocumentStore((s) => s.edgesBySheet[activeSheetId] ?? [])
   const onNodesChange = useDocumentStore((s) => s.onNodesChange)
@@ -29,11 +31,15 @@ function CanvasInner() {
   const onConnectStore = useDocumentStore((s) => s.onConnect)
   const addNode = useDocumentStore((s) => s.addNode)
   const updateNode = useDocumentStore((s) => s.updateNode)
+  const removeNode = useDocumentStore((s) => s.removeNode)
+  const duplicateNode = useDocumentStore((s) => s.duplicateNode)
+  const removeEdge = useDocumentStore((s) => s.removeEdge)
   const assignNodeToGroup = useDocumentStore((s) => s.assignNodeToGroup)
   const select = useDocumentStore((s) => s.select)
   const clearSelection = useDocumentStore((s) => s.clearSelection)
+  const setFocusNode = useDocumentStore((s) => s.setFocusNode)
 
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, fitView } = useReactFlow()
   const [menu, setMenu] = useState<PaneContextMenuState | null>(null)
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
 
@@ -42,6 +48,52 @@ function CanvasInner() {
     [docNodes, selection, draggingNodeId],
   )
   const edges = useMemo(() => getFlowEdgesForSheet(docEdges, selection), [docEdges, selection])
+
+  // Focus/jump requested by a sheet-portal "Go" button: fitView to the target
+  // node once its sheet's nodes have been rendered, then select it.
+  useEffect(() => {
+    if (!focusNodeId) return
+    if (!docNodes.some((n) => n.id === focusNodeId)) return
+    const raf = requestAnimationFrame(() => {
+      fitView({ nodes: [{ id: focusNodeId }], duration: 300, maxZoom: 1 })
+      select({ kind: 'node', id: focusNodeId })
+      setFocusNode(null)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [focusNodeId, docNodes, fitView, select, setFocusNode])
+
+  // Delete/Backspace removes the current selection; Ctrl/Cmd+D duplicates the
+  // selected node. Skipped while focus is in a text field (inspector forms,
+  // markdown editors, sheet/KB rename inputs, etc. all use the same keys).
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!selection) return
+      const target = event.target as HTMLElement | null
+      const isEditable =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      if (isEditable) return
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault()
+        if (selection.kind === 'node') removeNode(activeSheetId, selection.id)
+        else removeEdge(activeSheetId, selection.id)
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+        if (selection.kind !== 'node') return
+        event.preventDefault()
+        const newId = duplicateNode(activeSheetId, selection.id)
+        if (newId) select({ kind: 'node', id: newId })
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selection, activeSheetId, removeNode, removeEdge, duplicateNode, select])
 
   const handlePaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
@@ -54,19 +106,12 @@ function CanvasInner() {
     [screenToFlowPosition],
   )
 
-  const handleAddDevice = useCallback(
-    (flowX: number, flowY: number) => {
-      const id = addNode(activeSheetId, 'device', { x: flowX, y: flowY }, {})
-      select({ kind: 'node', id })
-      setMenu(null)
-    },
-    [activeSheetId, addNode, select],
-  )
-
-  const handleAddGroup = useCallback(
-    (flowX: number, flowY: number) => {
-      const id = addNode(activeSheetId, 'group_header', { x: flowX, y: flowY }, {})
-      updateNode(activeSheetId, id, { width: GROUP_DEFAULT_WIDTH, height: GROUP_DEFAULT_HEIGHT })
+  const handleAddNode = useCallback(
+    (type: NodeType, flowX: number, flowY: number) => {
+      const id = addNode(activeSheetId, type, { x: flowX, y: flowY }, {})
+      if (type === 'group_header') {
+        updateNode(activeSheetId, id, { width: GROUP_DEFAULT_WIDTH, height: GROUP_DEFAULT_HEIGHT })
+      }
       select({ kind: 'node', id })
       setMenu(null)
     },
@@ -157,12 +202,7 @@ function CanvasInner() {
         <Controls />
         <MiniMap pannable zoomable />
       </ReactFlow>
-      <PaneContextMenu
-        state={menu}
-        onClose={() => setMenu(null)}
-        onAddDevice={handleAddDevice}
-        onAddGroup={handleAddGroup}
-      />
+      <PaneContextMenu state={menu} onClose={() => setMenu(null)} onAddNode={handleAddNode} />
     </div>
   )
 }

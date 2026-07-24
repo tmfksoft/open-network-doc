@@ -3,7 +3,6 @@ import {
   Stack,
   TextInput,
   Select,
-  Textarea,
   Title,
   Divider,
   Button,
@@ -16,6 +15,8 @@ import { IconPencil, IconCheck } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { DocEdge, EdgeType } from '../fileformat/types'
 import { EDGE_TYPE_ICONS, EDGE_TYPE_LABELS } from '../canvas/edges/edgeTypeMeta'
+import MarkdownEditor from '../markdown/MarkdownEditor'
+import MarkdownRenderer from '../markdown/MarkdownRenderer'
 
 const EDGE_TYPES: EdgeType[] = ['physical_link', 'logical_link', 'vlan_membership', 'vpn_tunnel']
 
@@ -69,13 +70,13 @@ function EdgeReadOnlyView({ edge }: EdgeInspectorProps) {
       </Group>
       <FieldRow label="Label" value={edge.label} />
       <Divider label="Description" labelPosition="left" />
-      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-        {edge.description || (
-          <Text component="span" c="dimmed">
-            No description.
-          </Text>
-        )}
-      </Text>
+      {edge.description ? (
+        <MarkdownRenderer content={edge.description} />
+      ) : (
+        <Text size="sm" c="dimmed">
+          No description.
+        </Text>
+      )}
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeEdge(edge.sheetId, edge.id)}>
         Delete connection
@@ -103,12 +104,9 @@ function EdgeEditForm({ edge }: EdgeInspectorProps) {
         onBlur={(e) => updateEdge(edge.sheetId, edge.id, { label: e.currentTarget.value })}
       />
       <Divider label="Description" labelPosition="left" />
-      <Textarea
-        placeholder="Markdown description..."
-        minRows={6}
-        autosize
-        defaultValue={edge.description ?? ''}
-        onBlur={(e) => updateEdge(edge.sheetId, edge.id, { description: e.currentTarget.value })}
+      <MarkdownEditor
+        value={edge.description ?? ''}
+        onCommit={(value) => updateEdge(edge.sheetId, edge.id, { description: value })}
       />
       <Divider />
       <Button color="red" variant="outline" onClick={() => removeEdge(edge.sheetId, edge.id)}>

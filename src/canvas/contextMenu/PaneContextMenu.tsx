@@ -1,5 +1,6 @@
 import { Menu } from '@mantine/core'
 import { useClickOutside } from '@mantine/hooks'
+import type { NodeType } from '../../fileformat/types'
 
 export interface PaneContextMenuState {
   clientX: number
@@ -11,16 +12,19 @@ export interface PaneContextMenuState {
 interface PaneContextMenuProps {
   state: PaneContextMenuState | null
   onClose: () => void
-  onAddDevice: (flowX: number, flowY: number) => void
-  onAddGroup: (flowX: number, flowY: number) => void
+  onAddNode: (type: NodeType, flowX: number, flowY: number) => void
 }
 
-export default function PaneContextMenu({
-  state,
-  onClose,
-  onAddDevice,
-  onAddGroup,
-}: PaneContextMenuProps) {
+const MENU_ITEMS: { type: NodeType; label: string }[] = [
+  { type: 'device', label: 'Device' },
+  { type: 'network_group', label: 'Network Group' },
+  { type: 'vlan', label: 'VLAN' },
+  { type: 'ip_range', label: 'IP Range' },
+  { type: 'group_header', label: 'Group' },
+  { type: 'sheet_portal', label: 'Sheet Link' },
+]
+
+export default function PaneContextMenu({ state, onClose, onAddNode }: PaneContextMenuProps) {
   const ref = useClickOutside(onClose)
 
   if (!state) return null
@@ -40,8 +44,11 @@ export default function PaneContextMenu({
       </Menu.Target>
       <Menu.Dropdown ref={ref}>
         <Menu.Label>Add to sheet</Menu.Label>
-        <Menu.Item onClick={() => onAddDevice(state.flowX, state.flowY)}>Device</Menu.Item>
-        <Menu.Item onClick={() => onAddGroup(state.flowX, state.flowY)}>Group</Menu.Item>
+        {MENU_ITEMS.map((item) => (
+          <Menu.Item key={item.type} onClick={() => onAddNode(item.type, state.flowX, state.flowY)}>
+            {item.label}
+          </Menu.Item>
+        ))}
       </Menu.Dropdown>
     </Menu>
   )
