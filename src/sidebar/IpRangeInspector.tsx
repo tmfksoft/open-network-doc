@@ -6,6 +6,7 @@ import {
   Button,
   Group,
   Text,
+  SimpleGrid,
 } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { IpRangeDocNode, IpRangeData } from '../fileformat/types'
@@ -72,10 +73,12 @@ export default function IpRangeInspector({ node }: IpRangeInspectorProps) {
             <Icon size={20} />
             <Text fw={600}>{node.label}</Text>
           </Group>
-          <FieldRow label="Range start" value={node.data.rangeStart} />
-          <FieldRow label="Range end" value={node.data.rangeEnd} />
-          <FieldRow label="CIDR" value={node.data.cidr} />
-          <FieldRow label="Purpose" value={node.data.purpose} />
+          <SimpleGrid cols={2} spacing="sm">
+            <FieldRow label="Range start" value={node.data.rangeStart} />
+            <FieldRow label="Range end" value={node.data.rangeEnd} />
+            <FieldRow label="CIDR" value={node.data.cidr} />
+            <FieldRow label="Purpose" value={node.data.purpose} />
+          </SimpleGrid>
           <Divider label="Description" labelPosition="left" />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -124,30 +127,32 @@ function IpRangeEditForm({ node, draft, setDraft }: IpRangeEditFormProps) {
           setDraft((d) => ({ ...d, label: value }))
         }}
       />
-      <TextInput
-        label="Range start"
-        placeholder="10.0.0.10"
-        value={draft.data.rangeStart ?? ''}
-        onChange={(e) => setField('rangeStart', e.currentTarget.value)}
-      />
-      <TextInput
-        label="Range end"
-        placeholder="10.0.0.200"
-        value={draft.data.rangeEnd ?? ''}
-        onChange={(e) => setField('rangeEnd', e.currentTarget.value)}
-      />
-      <TextInput
-        label="CIDR"
-        placeholder="10.0.0.0/24"
-        value={draft.data.cidr ?? ''}
-        onChange={(e) => setField('cidr', e.currentTarget.value)}
-      />
-      <TextInput
-        label="Purpose"
-        placeholder="DHCP scope"
-        value={draft.data.purpose ?? ''}
-        onChange={(e) => setField('purpose', e.currentTarget.value)}
-      />
+      <SimpleGrid cols={2} spacing="sm">
+        <TextInput
+          label="Range start"
+          placeholder="10.0.0.10"
+          value={draft.data.rangeStart ?? ''}
+          onChange={(e) => setField('rangeStart', e.currentTarget.value)}
+        />
+        <TextInput
+          label="Range end"
+          placeholder="10.0.0.200"
+          value={draft.data.rangeEnd ?? ''}
+          onChange={(e) => setField('rangeEnd', e.currentTarget.value)}
+        />
+        <TextInput
+          label="CIDR"
+          placeholder="10.0.0.0/24"
+          value={draft.data.cidr ?? ''}
+          onChange={(e) => setField('cidr', e.currentTarget.value)}
+        />
+        <TextInput
+          label="Purpose"
+          placeholder="DHCP scope"
+          value={draft.data.purpose ?? ''}
+          onChange={(e) => setField('purpose', e.currentTarget.value)}
+        />
+      </SimpleGrid>
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
         value={draft.description}

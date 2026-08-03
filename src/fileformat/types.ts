@@ -19,6 +19,20 @@ export type DeviceType =
   | 'printer'
   | 'other'
 
+export type ServiceProtocol = 'tcp' | 'udp'
+
+export interface DeviceService {
+  id: string
+  name: string
+  /** First (or only) port in the range. */
+  portStart: number
+  /** Last port in the range; unset or equal to portStart means a single port. */
+  portEnd?: number
+  protocol: ServiceProtocol
+  /** Whether this service is reachable from outside world. */
+  public: boolean
+}
+
 export interface DeviceData {
   hostname?: string
   dhcp?: boolean
@@ -31,6 +45,7 @@ export interface DeviceData {
   iconAssetId?: string
   /** VLAN tag for this device; 0 is the conventional "no specific VLAN" default. */
   vlanId?: number
+  services?: DeviceService[]
 }
 
 export interface NetworkGroupData {

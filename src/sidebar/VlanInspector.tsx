@@ -7,6 +7,7 @@ import {
   Button,
   Group,
   Text,
+  SimpleGrid,
 } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { VlanDocNode, VlanData } from '../fileformat/types'
@@ -62,22 +63,24 @@ export default function VlanInspector({ node }: VlanInspectorProps) {
             <Icon size={20} />
             <Text fw={600}>{node.label}</Text>
           </Group>
-          <div>
-            <Text size="xs" c="dimmed">
-              VLAN ID
-            </Text>
-            <Text size="sm">
-              {node.data.vlanId ?? <Text component="span" c="dimmed">Not set</Text>}
-            </Text>
-          </div>
-          <div>
-            <Text size="xs" c="dimmed">
-              VLAN Name
-            </Text>
-            <Text size="sm">
-              {node.data.vlanName || <Text component="span" c="dimmed">Not set</Text>}
-            </Text>
-          </div>
+          <SimpleGrid cols={2} spacing="sm">
+            <div>
+              <Text size="xs" c="dimmed">
+                VLAN ID
+              </Text>
+              <Text size="sm">
+                {node.data.vlanId ?? <Text component="span" c="dimmed">Not set</Text>}
+              </Text>
+            </div>
+            <div>
+              <Text size="xs" c="dimmed">
+                VLAN Name
+              </Text>
+              <Text size="sm">
+                {node.data.vlanName || <Text component="span" c="dimmed">Not set</Text>}
+              </Text>
+            </div>
+          </SimpleGrid>
           <Divider label="Description" labelPosition="left" />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -126,19 +129,21 @@ function VlanEditForm({ node, draft, setDraft }: VlanEditFormProps) {
           setDraft((d) => ({ ...d, label: value }))
         }}
       />
-      <NumberInput
-        label="VLAN ID"
-        placeholder="100"
-        min={1}
-        max={4094}
-        value={draft.data.vlanId}
-        onChange={(value) => setField('vlanId', value === '' ? undefined : Number(value))}
-      />
-      <TextInput
-        label="VLAN Name"
-        value={draft.data.vlanName ?? ''}
-        onChange={(e) => setField('vlanName', e.currentTarget.value)}
-      />
+      <SimpleGrid cols={2} spacing="sm">
+        <NumberInput
+          label="VLAN ID"
+          placeholder="100"
+          min={1}
+          max={4094}
+          value={draft.data.vlanId}
+          onChange={(value) => setField('vlanId', value === '' ? undefined : Number(value))}
+        />
+        <TextInput
+          label="VLAN Name"
+          value={draft.data.vlanName ?? ''}
+          onChange={(e) => setField('vlanName', e.currentTarget.value)}
+        />
+      </SimpleGrid>
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
         value={draft.description}

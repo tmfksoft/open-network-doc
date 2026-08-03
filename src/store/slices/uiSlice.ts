@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 
 export type Selection = { kind: 'node' | 'edge'; id: string } | null
-export type AppMode = 'diagram' | 'knowledgebase'
+export type AppMode = 'diagram' | 'knowledgebase' | 'services'
 
 export interface UiSlice {
   mode: AppMode

@@ -14,6 +14,7 @@ export default function ModeSwitch() {
       data={[
         { label: 'Diagram', value: 'diagram' },
         { label: 'Knowledgebase', value: 'knowledgebase' },
+        { label: 'Services', value: 'services' },
       ]}
     />
   )

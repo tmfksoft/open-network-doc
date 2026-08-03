@@ -13,6 +13,7 @@ import { useBeforeUnloadWarning } from './useBeforeUnloadWarning'
 import { useOpenFromUrlParam } from './useOpenFromUrlParam'
 import KbNav from '../kb/KbNav'
 import KbPageView from '../kb/KbPageView'
+import ServicesView from '../services/ServicesView'
 
 export default function AppShell() {
   const dirty = useDocumentStore((s) => s.dirty)
@@ -53,7 +54,11 @@ export default function AppShell() {
     <DropZoneOverlay>
       <MantineAppShell
         header={{ height: 48 }}
-        navbar={{ width: navbarWidth, breakpoint: 'sm' }}
+        navbar={{
+          width: navbarWidth,
+          breakpoint: 'sm',
+          collapsed: { desktop: mode === 'services', mobile: mode === 'services' },
+        }}
         aside={{
           width: 320,
           breakpoint: 'sm',
@@ -83,7 +88,7 @@ export default function AppShell() {
         </MantineAppShell.Header>
 
         <MantineAppShell.Navbar style={{ overflowY: 'auto' }}>
-          {mode === 'diagram' ? <SheetList /> : <KbNav />}
+          {mode === 'diagram' ? <SheetList /> : mode === 'knowledgebase' ? <KbNav /> : null}
           <div
             role="separator"
             aria-orientation="vertical"
@@ -103,7 +108,13 @@ export default function AppShell() {
         </MantineAppShell.Navbar>
 
         <MantineAppShell.Main style={{ height: 'calc(100vh - 48px)', overflow: 'auto' }}>
-          {mode === 'diagram' ? <ReactFlowCanvas /> : <KbPageView />}
+          {mode === 'diagram' ? (
+            <ReactFlowCanvas />
+          ) : mode === 'knowledgebase' ? (
+            <KbPageView />
+          ) : (
+            <ServicesView />
+          )}
         </MantineAppShell.Main>
 
         <MantineAppShell.Aside style={{ overflowY: 'auto' }}>

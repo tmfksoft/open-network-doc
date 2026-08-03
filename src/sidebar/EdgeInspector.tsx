@@ -11,6 +11,7 @@ import {
   Group,
   Text,
   Badge,
+  SimpleGrid,
 } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { DocEdge, EdgeArrowStyle, EdgeLineStyle, EdgeType } from '../fileformat/types'
@@ -139,24 +140,26 @@ function EdgeReadOnlyView({ edge }: EdgeInspectorProps) {
         </Badge>
       </Group>
       <FieldRow label="Label" value={edge.label} />
-      <FieldRow label="VLAN ID" value={String(edge.vlanId ?? 0)} />
-      <div>
-        <Text size="xs" c="dimmed">
-          Color
-        </Text>
-        {edge.color ? (
-          <Group gap={6} mt={2}>
-            <ColorSwatch color={edge.color} size={16} />
-            <Text size="sm">{edge.color}</Text>
-          </Group>
-        ) : (
-          <Text size="sm" c="dimmed">
-            Default
+      <SimpleGrid cols={2} spacing="sm">
+        <FieldRow label="VLAN ID" value={String(edge.vlanId ?? 0)} />
+        <FieldRow label="Line style" value={edge.lineStyle === 'dashed' ? 'Dashed' : 'Solid'} />
+        <div>
+          <Text size="xs" c="dimmed">
+            Color
           </Text>
-        )}
-      </div>
-      <FieldRow label="Line style" value={edge.lineStyle === 'dashed' ? 'Dashed' : 'Solid'} />
-      <FieldRow label="Arrows" value={ARROW_STYLE_LABELS[edge.arrowStyle ?? 'none']} />
+          {edge.color ? (
+            <Group gap={6} mt={2}>
+              <ColorSwatch color={edge.color} size={16} />
+              <Text size="sm">{edge.color}</Text>
+            </Group>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Default
+            </Text>
+          )}
+        </div>
+        <FieldRow label="Arrows" value={ARROW_STYLE_LABELS[edge.arrowStyle ?? 'none']} />
+      </SimpleGrid>
       <Divider label="Description" labelPosition="left" />
       {edge.description ? (
         <MarkdownRenderer content={edge.description} />
@@ -199,26 +202,28 @@ function EdgeEditForm({ edge, draft, setDraft }: EdgeEditFormProps) {
           setDraft((d) => ({ ...d, label: value }))
         }}
       />
+      <SimpleGrid cols={2} spacing="sm">
+        <NumberInput
+          label="VLAN ID"
+          min={0}
+          max={4094}
+          value={draft.vlanId}
+          onChange={(value) => setDraft((d) => ({ ...d, vlanId: Number(value) || 0 }))}
+        />
+        <Select
+          label="Line style"
+          data={LINE_STYLES}
+          value={draft.lineStyle}
+          onChange={(value) => value && setDraft((d) => ({ ...d, lineStyle: value as EdgeLineStyle }))}
+          allowDeselect={false}
+        />
+      </SimpleGrid>
       <ColorInput
         label="Color"
         placeholder="Default"
         swatches={EDGE_COLOR_SWATCHES}
         value={draft.color ?? ''}
         onChange={(value) => setDraft((d) => ({ ...d, color: value || undefined }))}
-      />
-      <NumberInput
-        label="VLAN ID"
-        min={0}
-        max={4094}
-        value={draft.vlanId}
-        onChange={(value) => setDraft((d) => ({ ...d, vlanId: Number(value) || 0 }))}
-      />
-      <Select
-        label="Line style"
-        data={LINE_STYLES}
-        value={draft.lineStyle}
-        onChange={(value) => value && setDraft((d) => ({ ...d, lineStyle: value as EdgeLineStyle }))}
-        allowDeselect={false}
       />
       <Select
         label="Arrows"
