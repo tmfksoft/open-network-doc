@@ -73,20 +73,22 @@ function nodeVlanId(node: DocNode): number | undefined {
 export function getFlowNodesForSheet(
   nodes: DocNode[],
   selection: Selection,
-  draggingNodeId?: string | null,
+  draggingNodeIds?: string[] | null,
   highlightVlanId?: number | null,
 ): Node[] {
   // Connection handles stay hidden until something is selected, then appear
   // on every node so you can drag a connection to/from any of them — not
   // just the one you clicked.
   const handlesVisible = selection?.kind === 'node'
+  const selectedIds = selection?.kind === 'node' ? new Set(selection.ids) : null
+  const draggingIds = draggingNodeIds && draggingNodeIds.length > 0 ? new Set(draggingNodeIds) : null
 
   return sortNodesParentFirst(nodes).map((n) => {
-    let flowNode = toFlowNode(n, selection?.kind === 'node' && selection.id === n.id)
+    let flowNode = toFlowNode(n, selectedIds?.has(n.id) ?? false)
     flowNode = { ...flowNode, data: { ...flowNode.data, handlesVisible } }
-    if (n.id === draggingNodeId) flowNode = { ...flowNode, zIndex: DRAGGING_Z_INDEX }
+    if (draggingIds?.has(n.id)) flowNode = { ...flowNode, zIndex: DRAGGING_Z_INDEX }
     // If a group is being dragged, keep its children rendered above it (and everything else).
-    else if (draggingNodeId && n.parentId === draggingNodeId) flowNode = { ...flowNode, zIndex: DRAGGING_CHILD_Z_INDEX }
+    else if (n.parentId && draggingIds?.has(n.parentId)) flowNode = { ...flowNode, zIndex: DRAGGING_CHILD_Z_INDEX }
     if (highlightVlanId != null) {
       flowNode = { ...flowNode, data: { ...flowNode.data, highlighted: nodeVlanId(n) === highlightVlanId } }
     }

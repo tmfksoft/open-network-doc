@@ -41,6 +41,11 @@ export function getNodeSummary(node: DocNode): SummaryLine[] {
       break
     case 'markdown':
       break
+    case 'button':
+      if (node.data.linkType === 'website' && node.data.url) lines.push({ label: 'Links to', value: node.data.url })
+      else if (node.data.linkType === 'sheet') lines.push({ label: 'Links to', value: 'Sheet' })
+      else if (node.data.linkType === 'kb_article') lines.push({ label: 'Links to', value: 'KB Article' })
+      break
   }
 
   return lines

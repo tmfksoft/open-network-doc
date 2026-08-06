@@ -26,6 +26,7 @@ const MENU_ITEMS: { type: NodeType; label: string }[] = [
   { type: 'group_header', label: 'Group' },
   { type: 'sheet_portal', label: 'Sheet Link' },
   { type: 'markdown', label: 'Markdown Note' },
+  { type: 'button', label: 'Button' },
 ]
 
 export default function PaneContextMenu({ state, onClose, onAddNode, onPaste }: PaneContextMenuProps) {

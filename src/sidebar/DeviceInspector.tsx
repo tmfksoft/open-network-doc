@@ -270,7 +270,6 @@ function DeviceEditForm({ node, draft, setDraft }: DeviceEditFormProps) {
         />
         <Select
           label="Device type"
-          description={draft.data.iconAssetId ? 'Icon used when the logo above is removed' : undefined}
           data={DEVICE_TYPES.map((value) => ({ value, label: DEVICE_TYPE_LABELS[value] }))}
           value={draft.data.deviceType ?? null}
           onChange={(value) => setField('deviceType', (value ?? undefined) as DeviceType | undefined)}
@@ -402,7 +401,7 @@ function ServicesEditor({ services, onChange }: ServicesEditorProps) {
               value={modalService.name}
               onChange={(e) => updateModalService({ name: e.currentTarget.value })}
             />
-            <Group grow>
+            <Group grow align="flex-start">
               <NumberInput
                 label="Port"
                 min={1}
@@ -412,13 +411,15 @@ function ServicesEditor({ services, onChange }: ServicesEditorProps) {
               />
               <NumberInput
                 label="End port"
-                description="Optional — same as start for a single port"
                 min={1}
                 max={65535}
                 value={modalService.portEnd ?? ''}
                 onChange={(value) => updateModalService({ portEnd: value === '' ? undefined : Number(value) })}
               />
             </Group>
+            <Text size="xs" c="dimmed" mt={-8}>
+              End port is optional — leave blank, or same as start, for a single port
+            </Text>
             <Select
               label="Protocol"
               data={SERVICE_PROTOCOLS}

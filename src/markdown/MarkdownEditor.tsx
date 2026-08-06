@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Stack, Group, Tabs, Textarea, ActionIcon, Text } from '@mantine/core'
-import { IconBold, IconItalic, IconLink, IconPhoto } from '@tabler/icons-react'
+import { Stack, Group, Tabs, Textarea, ActionIcon, Text, Popover, Select } from '@mantine/core'
+import { IconBold, IconItalic, IconLink, IconPhoto, IconFileText } from '@tabler/icons-react'
 import { registerAsset } from '../assets-runtime/assetStore'
+import { useDocumentStore } from '../store/useDocumentStore'
 import MarkdownRenderer from './MarkdownRenderer'
 
 interface MarkdownEditorProps {
@@ -19,8 +20,10 @@ export default function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [text, setText] = useState(value)
   const [tab, setTab] = useState<string | null>('write')
+  const [kbLinkOpen, setKbLinkOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const kbPages = useDocumentStore((s) => s.kbPages)
 
   useEffect(() => setText(value), [value])
 
@@ -42,6 +45,16 @@ export default function MarkdownEditor({
   const insertImage = (file: File) => {
     const id = registerAsset(file)
     insertAtCursor(`![](asset://${id})`)
+  }
+
+  const insertKbLink = (pageId: string) => {
+    const page = kbPages.find((p) => p.id === pageId)
+    if (!page) return
+    const el = textareaRef.current
+    const hasSelection = el && el.selectionStart !== el.selectionEnd
+    if (hasSelection) insertAtCursor('[', `](kb://${pageId})`)
+    else insertAtCursor(`[${page.title}](kb://${pageId})`)
+    setKbLinkOpen(false)
   }
 
   return (
@@ -71,6 +84,29 @@ export default function MarkdownEditor({
               >
                 <IconPhoto size={14} />
               </ActionIcon>
+              <Popover opened={kbLinkOpen} onChange={setKbLinkOpen} withinPortal position="bottom-start" shadow="md">
+                <Popover.Target>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    aria-label="Link to KB article"
+                    disabled={kbPages.length === 0}
+                    onClick={() => setKbLinkOpen((o) => !o)}
+                  >
+                    <IconFileText size={14} />
+                  </ActionIcon>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Select
+                    placeholder="Search KB pages..."
+                    searchable
+                    data={kbPages.map((p) => ({ value: p.id, label: p.title }))}
+                    onChange={(value) => value && insertKbLink(value)}
+                    nothingFoundMessage="No matching pages"
+                    w={220}
+                  />
+                </Popover.Dropdown>
+              </Popover>
             </Group>
           )}
         </Group>

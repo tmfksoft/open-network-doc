@@ -6,6 +6,7 @@ import ReactFlowCanvas from '../canvas/ReactFlowCanvas'
 import InspectorPanel from '../sidebar/InspectorPanel'
 import SheetList from '../sheets/SheetList'
 import FileMenu from './FileMenu'
+import ToolsMenu from './ToolsMenu'
 import DocTitle from './DocTitle'
 import ModeSwitch from './ModeSwitch'
 import DropZoneOverlay from './DropZoneOverlay'
@@ -70,6 +71,7 @@ export default function AppShell() {
           <Group h="100%" px="md" justify="space-between">
             <Group gap="xs">
               <FileMenu />
+              <ToolsMenu />
               <DocTitle />
               {saving ? (
                 <Badge size="xs" color="blue" variant="light" leftSection={<Loader size={10} color="blue" />}>

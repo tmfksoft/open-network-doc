@@ -10,6 +10,7 @@ import {
   type EdgeMouseHandler,
   type OnConnect,
   type OnNodeDrag,
+  type SelectionDragHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { IconMagnet } from '@tabler/icons-react'
@@ -23,6 +24,7 @@ import NodeContextMenu, { type NodeContextMenuState } from './contextMenu/NodeCo
 import { GROUP_DEFAULT_WIDTH, GROUP_DEFAULT_HEIGHT } from './nodes/groupLayoutConstants'
 import { NODE_CARD_DEFAULT_WIDTH, NODE_CARD_DEFAULT_HEIGHT } from './nodes/NodeCard'
 import { MARKDOWN_NOTE_DEFAULT_WIDTH, MARKDOWN_NOTE_DEFAULT_HEIGHT } from './nodes/MarkdownNoteNode'
+import { BUTTON_NODE_DEFAULT_WIDTH, BUTTON_NODE_DEFAULT_HEIGHT } from './nodes/ButtonNode'
 import type { DocNode, NodeType, VlanDocNode } from '../fileformat/types'
 
 const SNAP_GRID: [number, number] = [20, 20]
@@ -46,6 +48,7 @@ function CanvasInner() {
   const removeEdge = useDocumentStore((s) => s.removeEdge)
   const assignNodeToGroup = useDocumentStore((s) => s.assignNodeToGroup)
   const select = useDocumentStore((s) => s.select)
+  const toggleNodeSelection = useDocumentStore((s) => s.toggleNodeSelection)
   const clearSelection = useDocumentStore((s) => s.clearSelection)
   const setFocusNode = useDocumentStore((s) => s.setFocusNode)
   const snapToGrid = useUiPrefsStore((s) => s.snapToGrid)
@@ -54,12 +57,12 @@ function CanvasInner() {
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [menu, setMenu] = useState<PaneContextMenuState | null>(null)
   const [nodeMenu, setNodeMenu] = useState<NodeContextMenuState | null>(null)
-  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
+  const [draggingNodeIds, setDraggingNodeIds] = useState<string[] | null>(null)
   const [clipboardNode, setClipboardNode] = useState<DocNode | null>(null)
 
   const nodes = useMemo(
-    () => getFlowNodesForSheet(docNodes, selection, draggingNodeId, highlightVlanId),
-    [docNodes, selection, draggingNodeId, highlightVlanId],
+    () => getFlowNodesForSheet(docNodes, selection, draggingNodeIds, highlightVlanId),
+    [docNodes, selection, draggingNodeIds, highlightVlanId],
   )
   const edges = useMemo(
     () => getFlowEdgesForSheet(docEdges, selection, highlightVlanId),
@@ -73,7 +76,7 @@ function CanvasInner() {
     if (!docNodes.some((n) => n.id === focusNodeId)) return
     const raf = requestAnimationFrame(() => {
       fitView({ nodes: [{ id: focusNodeId }], duration: 300, maxZoom: 1 })
-      select({ kind: 'node', id: focusNodeId })
+      select({ kind: 'node', ids: [focusNodeId] })
       setFocusNode(null)
     })
     return () => cancelAnimationFrame(raf)
@@ -100,22 +103,27 @@ function CanvasInner() {
       if (selection) {
         if (event.key === 'Delete' || event.key === 'Backspace') {
           event.preventDefault()
-          if (selection.kind === 'node') removeNode(activeSheetId, selection.id)
-          else removeEdge(activeSheetId, selection.id)
+          if (selection.kind === 'node') {
+            for (const id of selection.ids) removeNode(activeSheetId, id)
+          } else {
+            removeEdge(activeSheetId, selection.id)
+          }
           return
         }
 
+        // Duplicate/copy only act on a single selected node — bulk variants
+        // aren't supported yet, so multi-selections are left alone here.
         if (isMod && event.key.toLowerCase() === 'd') {
-          if (selection.kind !== 'node') return
+          if (selection.kind !== 'node' || selection.ids.length !== 1) return
           event.preventDefault()
-          const newId = duplicateNode(activeSheetId, selection.id)
-          if (newId) select({ kind: 'node', id: newId })
+          const newId = duplicateNode(activeSheetId, selection.ids[0])
+          if (newId) select({ kind: 'node', ids: [newId] })
           return
         }
 
         if (isMod && event.key.toLowerCase() === 'c') {
-          if (selection.kind !== 'node') return
-          const node = docNodes.find((n) => n.id === selection.id)
+          if (selection.kind !== 'node' || selection.ids.length !== 1) return
+          const node = docNodes.find((n) => n.id === selection.ids[0])
           if (node) setClipboardNode(node)
           return
         }
@@ -125,7 +133,7 @@ function CanvasInner() {
         if (!clipboardNode) return
         event.preventDefault()
         const newId = pasteNode(activeSheetId, clipboardNode)
-        select({ kind: 'node', id: newId })
+        select({ kind: 'node', ids: [newId] })
         // Advance the clipboard's reference position so a second Ctrl+V
         // cascades further away instead of landing exactly on the first paste.
         setClipboardNode({
@@ -154,11 +162,14 @@ function CanvasInner() {
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: { id: string }) => {
       event.preventDefault()
-      select({ kind: 'node', id: node.id })
+      // Right-clicking a node that's already part of a multi-selection keeps
+      // the whole selection intact; right-clicking anything else replaces it.
+      const alreadySelected = selection?.kind === 'node' && selection.ids.includes(node.id)
+      if (!alreadySelected) select({ kind: 'node', ids: [node.id] })
       setNodeMenu({ clientX: event.clientX, clientY: event.clientY, nodeId: node.id })
       setMenu(null)
     },
-    [select],
+    [select, selection],
   )
 
   const handleAddNode = useCallback(
@@ -169,9 +180,11 @@ function CanvasInner() {
           ? { width: GROUP_DEFAULT_WIDTH, height: GROUP_DEFAULT_HEIGHT }
           : type === 'markdown'
             ? { width: MARKDOWN_NOTE_DEFAULT_WIDTH, height: MARKDOWN_NOTE_DEFAULT_HEIGHT }
-            : { width: NODE_CARD_DEFAULT_WIDTH, height: NODE_CARD_DEFAULT_HEIGHT }
+            : type === 'button'
+              ? { width: BUTTON_NODE_DEFAULT_WIDTH, height: BUTTON_NODE_DEFAULT_HEIGHT }
+              : { width: NODE_CARD_DEFAULT_WIDTH, height: NODE_CARD_DEFAULT_HEIGHT }
       updateNode(activeSheetId, id, size)
-      select({ kind: 'node', id })
+      select({ kind: 'node', ids: [id] })
       setMenu(null)
     },
     [activeSheetId, addNode, updateNode, select],
@@ -181,7 +194,7 @@ function CanvasInner() {
     (flowX: number, flowY: number) => {
       if (!clipboardNode) return
       const id = pasteNode(activeSheetId, clipboardNode, { x: flowX, y: flowY })
-      select({ kind: 'node', id })
+      select({ kind: 'node', ids: [id] })
       setMenu(null)
     },
     [activeSheetId, clipboardNode, pasteNode, select],
@@ -199,7 +212,7 @@ function CanvasInner() {
   const handleDuplicateFromMenu = useCallback(
     (nodeId: string) => {
       const newId = duplicateNode(activeSheetId, nodeId)
-      if (newId) select({ kind: 'node', id: newId })
+      if (newId) select({ kind: 'node', ids: [newId] })
       setNodeMenu(null)
     },
     [activeSheetId, duplicateNode, select],
@@ -214,8 +227,12 @@ function CanvasInner() {
   )
 
   const handleNodeClick: NodeMouseHandler = useCallback(
-    (_event, node) => {
-      select({ kind: 'node', id: node.id })
+    (event, node) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey) {
+        toggleNodeSelection(node.id)
+      } else {
+        select({ kind: 'node', ids: [node.id] })
+      }
       setMenu(null)
       setNodeMenu(null)
       if (node.type === 'vlan') {
@@ -225,7 +242,7 @@ function CanvasInner() {
         setHighlightVlanId(null)
       }
     },
-    [select, setHighlightVlanId],
+    [select, toggleNodeSelection, setHighlightVlanId],
   )
 
   const handleEdgeClick: EdgeMouseHandler = useCallback(
@@ -253,22 +270,15 @@ function CanvasInner() {
     [activeSheetId, onConnectStore],
   )
 
-  const handleNodeDragStart: OnNodeDrag = useCallback((_event, node) => {
-    setDraggingNodeId(node.id)
-    setMenu(null)
-    setNodeMenu(null)
-  }, [])
-
-  const handleNodeDragStop: OnNodeDrag = useCallback(
-    (_event, node) => {
-      setDraggingNodeId(null)
-      if (node.type === 'group_header') return
-
-      // Resolve the dropped node's absolute (sheet-space) center. `node.position`
-      // from the callback is relative to its (possibly stale, pre-drop) parent,
-      // so this is computed from our own store data rather than React Flow's
-      // `getIntersectingNodes`, which does not reliably resolve absolute
-      // position for nodes that already have a parentId.
+  // Shared by both the single-node and multi-selection drag-stop handlers:
+  // resolves the dropped node's absolute (sheet-space) center and reparents
+  // it into whichever group box it's now over (or back out to the sheet).
+  // `node.position` from the callback is relative to its (possibly stale,
+  // pre-drop) parent, so this is computed from our own store data rather
+  // than React Flow's `getIntersectingNodes`, which does not reliably
+  // resolve absolute position for nodes that already have a parentId.
+  const resolveNodeGroupDrop = useCallback(
+    (node: { id: string; parentId?: string; position: { x: number; y: number } }) => {
       const storeNode = docNodes.find((n) => n.id === node.id)
       const width = storeNode?.width ?? 180
       const height = storeNode?.height ?? 113
@@ -298,6 +308,41 @@ function CanvasInner() {
     [activeSheetId, assignNodeToGroup, docNodes],
   )
 
+  const handleNodeDragStart: OnNodeDrag = useCallback((_event, node) => {
+    setDraggingNodeIds([node.id])
+    setMenu(null)
+    setNodeMenu(null)
+  }, [])
+
+  const handleNodeDragStop: OnNodeDrag = useCallback(
+    (_event, node) => {
+      setDraggingNodeIds(null)
+      // When multiple nodes are selected, onSelectionDragStop (below) handles
+      // reassignment for the whole group instead of just this one.
+      if (selection?.kind === 'node' && selection.ids.length > 1) return
+      if (node.type === 'group_header') return
+      resolveNodeGroupDrop(node)
+    },
+    [selection, resolveNodeGroupDrop],
+  )
+
+  const handleSelectionDragStart: SelectionDragHandler = useCallback((_event, nodes) => {
+    setDraggingNodeIds(nodes.map((n) => n.id))
+    setMenu(null)
+    setNodeMenu(null)
+  }, [])
+
+  const handleSelectionDragStop: SelectionDragHandler = useCallback(
+    (_event, nodes) => {
+      setDraggingNodeIds(null)
+      for (const node of nodes) {
+        if (node.type === 'group_header') continue
+        resolveNodeGroupDrop(node)
+      }
+    },
+    [resolveNodeGroupDrop],
+  )
+
   if (!activeSheetId) return null
 
   return (
@@ -315,6 +360,8 @@ function CanvasInner() {
         onNodeContextMenu={handleNodeContextMenu}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
+        onSelectionDragStart={handleSelectionDragStart}
+        onSelectionDragStop={handleSelectionDragStop}
         onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}
         snapToGrid={snapToGrid}

@@ -6,6 +6,7 @@ import VlanNode from './nodes/VlanNode'
 import IpRangeNode from './nodes/IpRangeNode'
 import SheetPortalNode from './nodes/SheetPortalNode'
 import MarkdownNoteNode from './nodes/MarkdownNoteNode'
+import ButtonNode from './nodes/ButtonNode'
 
 export const nodeTypes: NodeTypes = {
   device: DeviceNode,
@@ -15,4 +16,5 @@ export const nodeTypes: NodeTypes = {
   ip_range: IpRangeNode,
   sheet_portal: SheetPortalNode,
   markdown: MarkdownNoteNode,
+  button: ButtonNode,
 }

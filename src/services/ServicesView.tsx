@@ -58,7 +58,7 @@ export default function ServicesView() {
 
   const goToDevice = (row: ServiceRow) => {
     setActiveSheet(row.sheetId)
-    select({ kind: 'node', id: row.deviceId })
+    select({ kind: 'node', ids: [row.deviceId] })
     setFocusNode(row.deviceId)
     setMode('diagram')
   }

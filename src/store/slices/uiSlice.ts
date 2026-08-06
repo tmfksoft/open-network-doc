@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 
-export type Selection = { kind: 'node' | 'edge'; id: string } | null
+/** Node selection carries every selected id (ctrl/shift-click adds to it); edge selection stays single. */
+export type Selection = { kind: 'node'; ids: string[] } | { kind: 'edge'; id: string } | null
 export type AppMode = 'diagram' | 'knowledgebase' | 'services'
 
 export interface UiSlice {
@@ -18,6 +19,8 @@ export interface UiSlice {
   setActiveSheet: (sheetId: string) => void
   setActiveKbPage: (pageId: string | null) => void
   select: (selection: Selection) => void
+  /** Ctrl/shift-click a node: adds it to the current multi-selection, or removes it if already in there. */
+  toggleNodeSelection: (nodeId: string) => void
   clearSelection: () => void
   setFocusNode: (nodeId: string | null) => void
   setHighlightVlanId: (vlanId: number | null) => void
@@ -39,6 +42,14 @@ export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
   setActiveSheet: (sheetId) => set({ activeSheetId: sheetId, selection: null }),
   setActiveKbPage: (pageId) => set({ activeKbPageId: pageId }),
   select: (selection) => set({ selection }),
+  toggleNodeSelection: (nodeId) =>
+    set((state) => {
+      if (state.selection?.kind !== 'node') return { selection: { kind: 'node', ids: [nodeId] } }
+      const ids = state.selection.ids.includes(nodeId)
+        ? state.selection.ids.filter((id) => id !== nodeId)
+        : [...state.selection.ids, nodeId]
+      return { selection: ids.length > 0 ? { kind: 'node', ids } : null }
+    }),
   clearSelection: () => set({ selection: null }),
   setFocusNode: (nodeId) => set({ focusNodeId: nodeId }),
   setHighlightVlanId: (vlanId) => set({ highlightVlanId: vlanId }),

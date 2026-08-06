@@ -6,6 +6,7 @@ export type NodeType =
   | 'group_header'
   | 'sheet_portal'
   | 'markdown'
+  | 'button'
 
 export type EdgeType = 'physical_link' | 'logical_link' | 'vlan_membership' | 'vpn_tunnel' | 'http' | 'https'
 
@@ -86,6 +87,20 @@ export interface SheetPortalData {
 /** No fields of its own — its markdown body is BaseDocNode.description, same as every other node type's description. */
 export type MarkdownNoteData = Record<string, never>
 
+export type ButtonLinkType = 'website' | 'sheet' | 'kb_article'
+
+export interface ButtonData {
+  linkType?: ButtonLinkType
+  /** Target URL when linkType is 'website'. */
+  url?: string
+  /** Target sheet id when linkType is 'sheet'. */
+  targetSheetId?: string
+  /** Target KB page id when linkType is 'kb_article'. */
+  targetKbPageId?: string
+  /** Hex color for the button's fill; unset uses the default accent color. */
+  color?: string
+}
+
 export type NodeTypeData<T extends NodeType> = T extends 'device'
   ? DeviceData
   : T extends 'network_group'
@@ -100,7 +115,9 @@ export type NodeTypeData<T extends NodeType> = T extends 'device'
             ? SheetPortalData
             : T extends 'markdown'
               ? MarkdownNoteData
-              : never
+              : T extends 'button'
+                ? ButtonData
+                : never
 
 interface BaseDocNode {
   id: string
@@ -146,6 +163,10 @@ export interface MarkdownNoteDocNode extends BaseDocNode {
   type: 'markdown'
   data: MarkdownNoteData
 }
+export interface ButtonDocNode extends BaseDocNode {
+  type: 'button'
+  data: ButtonData
+}
 
 /** Discriminated union on `type` — enables narrowing via switch/if without casts. */
 export type DocNode =
@@ -156,6 +177,7 @@ export type DocNode =
   | GroupHeaderDocNode
   | SheetPortalDocNode
   | MarkdownNoteDocNode
+  | ButtonDocNode
 
 export interface PhysicalLinkData {
   portSource?: string

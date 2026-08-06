@@ -86,22 +86,29 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
   },
 
   removeNode: (sheetId, nodeId) => {
-    set((state) => ({
-      nodesBySheet: {
-        ...state.nodesBySheet,
-        [sheetId]: (state.nodesBySheet[sheetId] ?? []).filter(
-          (n) => n.id !== nodeId && n.parentId !== nodeId,
-        ),
-      },
-      edgesBySheet: {
-        ...state.edgesBySheet,
-        [sheetId]: (state.edgesBySheet[sheetId] ?? []).filter(
-          (e) => e.sourceNodeId !== nodeId && e.targetNodeId !== nodeId,
-        ),
-      },
-      selection: state.selection?.id === nodeId ? null : state.selection,
-      dirty: true,
-    }))
+    set((state) => {
+      let selection = state.selection
+      if (selection?.kind === 'node' && selection.ids.includes(nodeId)) {
+        const ids = selection.ids.filter((id) => id !== nodeId)
+        selection = ids.length > 0 ? { kind: 'node', ids } : null
+      }
+      return {
+        nodesBySheet: {
+          ...state.nodesBySheet,
+          [sheetId]: (state.nodesBySheet[sheetId] ?? []).filter(
+            (n) => n.id !== nodeId && n.parentId !== nodeId,
+          ),
+        },
+        edgesBySheet: {
+          ...state.edgesBySheet,
+          [sheetId]: (state.edgesBySheet[sheetId] ?? []).filter(
+            (e) => e.sourceNodeId !== nodeId && e.targetNodeId !== nodeId,
+          ),
+        },
+        selection,
+        dirty: true,
+      }
+    })
   },
 
   duplicateNode: (sheetId, nodeId) => {
@@ -217,7 +224,7 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
         ...state.edgesBySheet,
         [sheetId]: (state.edgesBySheet[sheetId] ?? []).filter((e) => e.id !== edgeId),
       },
-      selection: state.selection?.id === edgeId ? null : state.selection,
+      selection: state.selection?.kind === 'edge' && state.selection.id === edgeId ? null : state.selection,
       dirty: true,
     }))
   },
@@ -307,5 +314,7 @@ function defaultLabelFor(type: NodeType): string {
       return 'Sheet Link'
     case 'markdown':
       return 'New Note'
+    case 'button':
+      return 'New Button'
   }
 }
