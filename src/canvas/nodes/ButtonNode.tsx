@@ -44,7 +44,6 @@ export default function ButtonNode({ data, selected }: NodeProps) {
         />
         <button
           type="button"
-          className="nodrag nopan"
           onClick={handleClick}
           style={{
             width: '100%',
