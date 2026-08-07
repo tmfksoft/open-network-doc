@@ -5,6 +5,12 @@ import type { Selection } from './slices/uiSlice'
 /** Default arrowhead color when the edge has no custom color set. */
 const DEFAULT_ARROW_COLOR = '#b1b1b7'
 
+/** Comfortably above any node's z-index (including the dragging-elevation range in
+ * getFlowNodesForSheet below), so an "on top" edge stays on top even while a connected
+ * node is actively being dragged — React Flow adds the connected nodes' own z-index on
+ * top of this (see @xyflow/system's getElevatedEdgeZIndex), so this needs real headroom. */
+const EDGE_ON_TOP_Z_INDEX = 100000
+
 function edgeMarkers(edge: DocEdge): Pick<Edge, 'markerStart' | 'markerEnd'> {
   if (!edge.arrowStyle || edge.arrowStyle === 'none') return {}
   const marker = { type: MarkerType.ArrowClosed, color: edge.color ?? DEFAULT_ARROW_COLOR }
@@ -37,6 +43,7 @@ export function toFlowEdge(edge: DocEdge, selected = false): Edge {
     label: edge.label,
     data: { docEdge: edge },
     selected,
+    zIndex: edge.onTop ? EDGE_ON_TOP_Z_INDEX : undefined,
     ...edgeMarkers(edge),
   }
 }
@@ -64,6 +71,30 @@ export function sortNodesParentFirst(nodes: DocNode[]): DocNode[] {
 const DRAGGING_Z_INDEX = 10000
 const DRAGGING_CHILD_Z_INDEX = 10001
 
+/** Every descendant (children, grandchildren, ...) of any node in `rootIds` — groups can now nest,
+ * so a dragged group's whole subtree needs elevating, not just its direct children. */
+function collectDescendants(nodes: DocNode[], rootIds: Set<string>): Set<string> {
+  const childrenByParent = new Map<string, string[]>()
+  for (const n of nodes) {
+    if (!n.parentId) continue
+    const siblings = childrenByParent.get(n.parentId) ?? []
+    siblings.push(n.id)
+    childrenByParent.set(n.parentId, siblings)
+  }
+  const result = new Set<string>()
+  const stack = [...rootIds]
+  while (stack.length > 0) {
+    const id = stack.pop()!
+    for (const childId of childrenByParent.get(id) ?? []) {
+      if (!result.has(childId)) {
+        result.add(childId)
+        stack.push(childId)
+      }
+    }
+  }
+  return result
+}
+
 /** VLAN ID carried by node types that participate in VLAN highlighting (devices and VLAN nodes themselves). */
 function nodeVlanId(node: DocNode): number | undefined {
   if (node.type === 'device' || node.type === 'vlan') return node.data.vlanId ?? 0
@@ -82,13 +113,14 @@ export function getFlowNodesForSheet(
   const handlesVisible = selection?.kind === 'node'
   const selectedIds = selection?.kind === 'node' ? new Set(selection.ids) : null
   const draggingIds = draggingNodeIds && draggingNodeIds.length > 0 ? new Set(draggingNodeIds) : null
+  const draggingDescendantIds = draggingIds ? collectDescendants(nodes, draggingIds) : null
 
   return sortNodesParentFirst(nodes).map((n) => {
     let flowNode = toFlowNode(n, selectedIds?.has(n.id) ?? false)
     flowNode = { ...flowNode, data: { ...flowNode.data, handlesVisible } }
     if (draggingIds?.has(n.id)) flowNode = { ...flowNode, zIndex: DRAGGING_Z_INDEX }
-    // If a group is being dragged, keep its children rendered above it (and everything else).
-    else if (n.parentId && draggingIds?.has(n.parentId)) flowNode = { ...flowNode, zIndex: DRAGGING_CHILD_Z_INDEX }
+    // If a group is being dragged, keep its whole subtree (children, grandchildren, ...) rendered above it (and everything else).
+    else if (draggingDescendantIds?.has(n.id)) flowNode = { ...flowNode, zIndex: DRAGGING_CHILD_Z_INDEX }
     if (highlightVlanId != null) {
       flowNode = { ...flowNode, data: { ...flowNode.data, highlighted: nodeVlanId(n) === highlightVlanId } }
     }

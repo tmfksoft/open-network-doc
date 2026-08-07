@@ -209,6 +209,8 @@ export interface DocEdge {
   lineStyle?: EdgeLineStyle
   /** Arrowhead(s) on the connection; unset/'none' renders a plain line. */
   arrowStyle?: EdgeArrowStyle
+  /** When true, this connection renders above every node/group, even ones drawn over it by default. */
+  onTop?: boolean
   /** Markdown description body, kept in memory; persisted as a separate .md file in the archive. */
   description?: string
   physicalLink?: PhysicalLinkData

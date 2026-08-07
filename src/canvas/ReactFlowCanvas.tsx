@@ -29,6 +29,44 @@ import type { DocNode, NodeType, VlanDocNode } from '../fileformat/types'
 
 const SNAP_GRID: [number, number] = [20, 20]
 
+/** True if `candidateId` is nested (at any depth) inside `ancestorId`, walking up the parentId chain. */
+function isDescendantOf(nodes: DocNode[], candidateId: string, ancestorId: string): boolean {
+  let current = nodes.find((n) => n.id === candidateId)
+  while (current?.parentId) {
+    if (current.parentId === ancestorId) return true
+    current = nodes.find((n) => n.id === current!.parentId)
+  }
+  return false
+}
+
+/** A node's position is relative to its immediate parent (if any) — resolve the full
+ * ancestor chain to get its true sheet-space position, needed once groups can nest. */
+function absolutePosition(nodes: DocNode[], node: DocNode): { x: number; y: number } {
+  let x = node.position.x
+  let y = node.position.y
+  let parentId = node.parentId
+  while (parentId) {
+    const parent = nodes.find((n) => n.id === parentId)
+    if (!parent) break
+    x += parent.position.x
+    y += parent.position.y
+    parentId = parent.parentId
+  }
+  return { x, y }
+}
+
+/** How many ancestors `node` has (0 for a top-level node). */
+function ancestorDepth(nodes: DocNode[], node: DocNode): number {
+  let depth = 0
+  let parentId = node.parentId
+  while (parentId) {
+    depth += 1
+    const parent = nodes.find((n) => n.id === parentId)
+    parentId = parent?.parentId
+  }
+  return depth
+}
+
 function CanvasInner() {
   const activeSheetId = useDocumentStore((s) => s.activeSheetId)
   const selection = useDocumentStore((s) => s.selection)
@@ -288,17 +326,21 @@ function CanvasInner() {
       const centerX = absX + width / 2
       const centerY = absY + height / 2
 
-      const targetGroup = docNodes.find((n) => {
-        if (n.type !== 'group_header' || n.id === node.id) return false
+      // A group's own `position` is relative to ITS parent (if any), so nested candidates
+      // need their true sheet-space box resolved before comparing against centerX/centerY.
+      const matchingGroups = docNodes.filter((n) => {
+        if (n.type !== 'group_header' || n.id === node.id || isDescendantOf(docNodes, n.id, node.id)) return false
         const gw = n.width ?? GROUP_DEFAULT_WIDTH
         const gh = n.height ?? GROUP_DEFAULT_HEIGHT
-        return (
-          centerX >= n.position.x &&
-          centerX <= n.position.x + gw &&
-          centerY >= n.position.y &&
-          centerY <= n.position.y + gh
-        )
+        const pos = absolutePosition(docNodes, n)
+        return centerX >= pos.x && centerX <= pos.x + gw && centerY >= pos.y && centerY <= pos.y + gh
       })
+      // When the point falls inside several nested groups at once, land in the most deeply
+      // nested one rather than whichever happens to be first in the sheet's node list.
+      const targetGroup = matchingGroups.reduce<DocNode | undefined>((deepest, candidate) => {
+        if (!deepest) return candidate
+        return ancestorDepth(docNodes, candidate) > ancestorDepth(docNodes, deepest) ? candidate : deepest
+      }, undefined)
 
       const targetGroupId = targetGroup?.id ?? null
       if (targetGroupId !== (node.parentId ?? null)) {
@@ -320,7 +362,6 @@ function CanvasInner() {
       // When multiple nodes are selected, onSelectionDragStop (below) handles
       // reassignment for the whole group instead of just this one.
       if (selection?.kind === 'node' && selection.ids.length > 1) return
-      if (node.type === 'group_header') return
       resolveNodeGroupDrop(node)
     },
     [selection, resolveNodeGroupDrop],
@@ -336,7 +377,6 @@ function CanvasInner() {
     (_event, nodes) => {
       setDraggingNodeIds(null)
       for (const node of nodes) {
-        if (node.type === 'group_header') continue
         resolveNodeGroupDrop(node)
       }
     },

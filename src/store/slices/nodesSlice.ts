@@ -87,22 +87,23 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
 
   removeNode: (sheetId, nodeId) => {
     set((state) => {
+      const docNodes = state.nodesBySheet[sheetId] ?? []
+      const toRemove = nodeAndDescendantIds(docNodes, nodeId)
+
       let selection = state.selection
-      if (selection?.kind === 'node' && selection.ids.includes(nodeId)) {
-        const ids = selection.ids.filter((id) => id !== nodeId)
+      if (selection?.kind === 'node' && selection.ids.some((id) => toRemove.has(id))) {
+        const ids = selection.ids.filter((id) => !toRemove.has(id))
         selection = ids.length > 0 ? { kind: 'node', ids } : null
       }
       return {
         nodesBySheet: {
           ...state.nodesBySheet,
-          [sheetId]: (state.nodesBySheet[sheetId] ?? []).filter(
-            (n) => n.id !== nodeId && n.parentId !== nodeId,
-          ),
+          [sheetId]: docNodes.filter((n) => !toRemove.has(n.id)),
         },
         edgesBySheet: {
           ...state.edgesBySheet,
           [sheetId]: (state.edgesBySheet[sheetId] ?? []).filter(
-            (e) => e.sourceNodeId !== nodeId && e.targetNodeId !== nodeId,
+            (e) => !toRemove.has(e.sourceNodeId) && !toRemove.has(e.targetNodeId),
           ),
         },
         selection,
@@ -297,6 +298,30 @@ export const createNodesSlice: StateCreator<DocumentStore, [], [], NodesSlice> =
     )
   },
 })
+
+/** `nodeId` plus every transitive child (groups can now nest, so removing one must
+ * also remove grandchildren, etc.) rather than only direct children. */
+function nodeAndDescendantIds(nodes: DocNode[], nodeId: string): Set<string> {
+  const childrenByParent = new Map<string, string[]>()
+  for (const n of nodes) {
+    if (!n.parentId) continue
+    const siblings = childrenByParent.get(n.parentId) ?? []
+    siblings.push(n.id)
+    childrenByParent.set(n.parentId, siblings)
+  }
+  const result = new Set<string>([nodeId])
+  const stack = [nodeId]
+  while (stack.length > 0) {
+    const id = stack.pop()!
+    for (const childId of childrenByParent.get(id) ?? []) {
+      if (!result.has(childId)) {
+        result.add(childId)
+        stack.push(childId)
+      }
+    }
+  }
+  return result
+}
 
 function defaultLabelFor(type: NodeType): string {
   switch (type) {

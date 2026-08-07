@@ -12,6 +12,7 @@ import {
   Text,
   Badge,
   SimpleGrid,
+  Switch,
 } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { DocEdge, EdgeArrowStyle, EdgeLineStyle, EdgeType } from '../fileformat/types'
@@ -59,6 +60,7 @@ interface Draft {
   vlanId: number
   lineStyle: EdgeLineStyle
   arrowStyle: EdgeArrowStyle
+  onTop: boolean
   description: string
 }
 
@@ -70,6 +72,7 @@ function toDraft(edge: DocEdge): Draft {
     vlanId: edge.vlanId ?? 0,
     lineStyle: edge.lineStyle ?? 'solid',
     arrowStyle: edge.arrowStyle ?? 'none',
+    onTop: edge.onTop ?? false,
     description: edge.description ?? '',
   }
 }
@@ -91,6 +94,7 @@ export default function EdgeInspector({ edge }: EdgeInspectorProps) {
       vlanId: draft.vlanId,
       lineStyle: draft.lineStyle,
       arrowStyle: draft.arrowStyle,
+      onTop: draft.onTop,
       description: draft.description,
     })
     setEditing(false)
@@ -159,6 +163,7 @@ function EdgeReadOnlyView({ edge }: EdgeInspectorProps) {
           )}
         </div>
         <FieldRow label="Arrows" value={ARROW_STYLE_LABELS[edge.arrowStyle ?? 'none']} />
+        <FieldRow label="Show on top" value={edge.onTop ? 'Yes' : 'No'} />
       </SimpleGrid>
       <Divider label="Description" labelPosition="left" />
       {edge.description ? (
@@ -231,6 +236,15 @@ function EdgeEditForm({ edge, draft, setDraft }: EdgeEditFormProps) {
         value={draft.arrowStyle}
         onChange={(value) => value && setDraft((d) => ({ ...d, arrowStyle: value as EdgeArrowStyle }))}
         allowDeselect={false}
+      />
+      <Switch
+        label="Show on top"
+        description="Render this connection above every node and group, even ones drawn over it by default"
+        checked={draft.onTop}
+        onChange={(e) => {
+          const checked = e.currentTarget.checked
+          setDraft((d) => ({ ...d, onTop: checked }))
+        }}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
