@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react'
 import { NodeResizer, type NodeProps } from '@xyflow/react'
 import { useDocumentStore } from '../../store/useDocumentStore'
 import type { ButtonDocNode } from '../../fileformat/types'
@@ -21,7 +22,13 @@ export default function ButtonNode({ data, selected }: NodeProps) {
   const { linkType, url, targetSheetId, targetKbPageId, color } = docNode.data
   const Icon = linkType ? BUTTON_LINK_TYPE_ICONS[linkType] : undefined
 
-  const handleClick = () => {
+  const handleClick = (e: MouseEvent) => {
+    // A click activates the link; it should never also select the node —
+    // otherwise the click bubbling up to React Flow's node handler selects
+    // this node just as (or after) navigation already swapped the active
+    // sheet/mode out from under it, leaving the aside open on a selection
+    // that no longer resolves to anything. Select it via right-click instead.
+    e.stopPropagation()
     if (linkType === 'website' && url) {
       window.open(url, '_blank', 'noopener,noreferrer')
     } else if (linkType === 'sheet' && targetSheetId) {
