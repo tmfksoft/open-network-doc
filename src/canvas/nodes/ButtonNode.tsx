@@ -19,7 +19,7 @@ export default function ButtonNode({ data, selected }: NodeProps) {
   const setActiveSheet = useDocumentStore((s) => s.setActiveSheet)
   const setActiveKbPage = useDocumentStore((s) => s.setActiveKbPage)
 
-  const { linkType, url, targetSheetId, targetKbPageId, color } = docNode.data
+  const { linkType, url, targetSheetId, targetKbPageId, backgroundColor, borderColor } = docNode.data
   const Icon = linkType ? BUTTON_LINK_TYPE_ICONS[linkType] : undefined
 
   const handleClick = (e: MouseEvent) => {
@@ -60,8 +60,10 @@ export default function ButtonNode({ data, selected }: NodeProps) {
             justifyContent: 'center',
             gap: 6,
             borderRadius: 8,
-            border: selected ? '2px solid var(--mantine-color-blue-4)' : '1px solid rgba(255, 255, 255, 0.15)',
-            background: color ?? DEFAULT_BUTTON_COLOR,
+            border: selected
+              ? '2px solid var(--mantine-color-blue-4)'
+              : `1px solid ${borderColor ?? 'rgba(255, 255, 255, 0.15)'}`,
+            background: backgroundColor ?? DEFAULT_BUTTON_COLOR,
             color: 'white',
             fontWeight: 600,
             fontSize: 14,

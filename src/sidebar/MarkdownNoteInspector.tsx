@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Stack, TextInput, Divider, Button, Group, Text } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
-import type { MarkdownNoteDocNode } from '../fileformat/types'
+import type { MarkdownNoteDocNode, MarkdownNoteData } from '../fileformat/types'
 import { MARKDOWN_NOTE_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 interface MarkdownNoteInspectorProps {
   node: MarkdownNoteDocNode
@@ -14,10 +15,11 @@ interface MarkdownNoteInspectorProps {
 interface Draft {
   label: string
   description: string
+  data: MarkdownNoteData
 }
 
 function toDraft(node: MarkdownNoteDocNode): Draft {
-  return { label: node.label, description: node.description ?? '' }
+  return { label: node.label, description: node.description ?? '', data: { ...node.data } }
 }
 
 export default function MarkdownNoteInspector({ node }: MarkdownNoteInspectorProps) {
@@ -31,7 +33,7 @@ export default function MarkdownNoteInspector({ node }: MarkdownNoteInspectorPro
     setEditing(true)
   }
   const save = () => {
-    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description })
+    updateNode(node.sheetId, node.id, { label: draft.label, description: draft.description, data: draft.data })
     setEditing(false)
   }
 
@@ -53,6 +55,7 @@ export default function MarkdownNoteInspector({ node }: MarkdownNoteInspectorPro
             <Icon size={20} />
             <Text fw={600}>{node.label}</Text>
           </Group>
+          <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
           <Divider />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -97,6 +100,12 @@ function MarkdownNoteEditForm({ node, draft, setDraft }: MarkdownNoteEditFormPro
           const value = e.currentTarget.value
           setDraft((d) => ({ ...d, label: value }))
         }}
+      />
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setDraft((d) => ({ ...d, data: { ...d.data, backgroundColor: value } }))}
+        onBorderChange={(value) => setDraft((d) => ({ ...d, data: { ...d.data, borderColor: value } }))}
       />
       <Divider label="Content" labelPosition="left" />
       <MarkdownEditor

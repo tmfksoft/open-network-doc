@@ -14,6 +14,8 @@ export default function NetworkGroupNode({ data, selected }: NodeProps) {
       label={docNode.label}
       subtext={docNode.data.cidr}
       selected={selected}
+      backgroundColor={docNode.data.backgroundColor}
+      borderColor={docNode.data.borderColor}
       handlesVisible={handlesVisible}
     />
   )

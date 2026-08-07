@@ -1,23 +1,14 @@
 import { useState } from 'react'
-import { Stack, TextInput, Select, ColorInput, ColorSwatch, Divider, Button, Group, Text } from '@mantine/core'
+import { Stack, TextInput, Select, Divider, Button, Group, Text } from '@mantine/core'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { ButtonDocNode, ButtonData, ButtonLinkType } from '../fileformat/types'
 import { BUTTON_LINK_TYPE_ICONS, BUTTON_LINK_TYPE_LABELS } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 const LINK_TYPES: ButtonLinkType[] = ['website', 'sheet', 'kb_article']
-
-const BUTTON_COLOR_SWATCHES = [
-  '#e03131',
-  '#f08c00',
-  '#2f9e44',
-  '#1971c2',
-  '#7048e8',
-  '#e64980',
-  '#495057',
-]
 
 interface ButtonInspectorProps {
   node: ButtonDocNode
@@ -113,21 +104,7 @@ function ButtonReadOnlyView({ node }: ButtonInspectorProps) {
           <LinkTarget node={node} />
         </div>
       </Group>
-      <div>
-        <Text size="xs" c="dimmed">
-          Color
-        </Text>
-        {node.data.color ? (
-          <Group gap={6} mt={2}>
-            <ColorSwatch color={node.data.color} size={16} />
-            <Text size="sm">{node.data.color}</Text>
-          </Group>
-        ) : (
-          <Text size="sm" c="dimmed">
-            Default
-          </Text>
-        )}
-      </div>
+      <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
       <Divider label="Description" labelPosition="left" />
       {node.description ? (
         <MarkdownRenderer content={node.description} />
@@ -208,12 +185,11 @@ function ButtonEditForm({ node, draft, setDraft }: ButtonEditFormProps) {
           clearable
         />
       )}
-      <ColorInput
-        label="Color"
-        placeholder="Default"
-        swatches={BUTTON_COLOR_SWATCHES}
-        value={draft.data.color ?? ''}
-        onChange={(value) => setField('color', value || undefined)}
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor

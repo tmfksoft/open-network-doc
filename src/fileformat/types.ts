@@ -34,7 +34,15 @@ export interface DeviceService {
   public: boolean
 }
 
-export interface DeviceData {
+/** Every node type's data mixes this in, so any node can override its default fill/border like the group header always could. */
+export interface NodeColorFields {
+  /** Hex color for the node's fill; unset uses the default theme background. */
+  backgroundColor?: string
+  /** Hex color for the node's border; unset uses the default theme border. */
+  borderColor?: string
+}
+
+export interface DeviceData extends NodeColorFields {
   hostname?: string
   dhcp?: boolean
   staticIp?: string
@@ -49,47 +57,43 @@ export interface DeviceData {
   services?: DeviceService[]
 }
 
-export interface NetworkGroupData {
+export interface NetworkGroupData extends NodeColorFields {
   cidr?: string
 }
 
-export interface VlanData {
+export interface VlanData extends NodeColorFields {
   vlanId?: number
   vlanName?: string
 }
 
-export interface IpRangeData {
+export interface IpRangeData extends NodeColorFields {
   rangeStart?: string
   rangeEnd?: string
   cidr?: string
   purpose?: string
 }
 
-export interface GroupHeaderData {
+export interface GroupHeaderData extends NodeColorFields {
   icon?: string
   /** Uploaded logo asset id; when set, replaces the picked icon on the canvas. */
   logoAssetId?: string
-  /** Hex color for the group box's fill; unset uses the default dark background. */
-  backgroundColor?: string
-  /** Hex color for the group box's border; unset uses the default border color. */
-  borderColor?: string
   collapsed?: boolean
   /** Opts this group into showing connection handles (when the sheet-wide handle visibility is on); unset/false keeps it handle-free even then. */
   showHandles?: boolean
 }
 
-export interface SheetPortalData {
+export interface SheetPortalData extends NodeColorFields {
   targetSheetId?: string
   targetNodeId?: string
   labelOverride?: string
 }
 
-/** No fields of its own — its markdown body is BaseDocNode.description, same as every other node type's description. */
-export type MarkdownNoteData = Record<string, never>
+/** Its markdown body is BaseDocNode.description, same as every other node type's description. */
+export type MarkdownNoteData = NodeColorFields
 
 export type ButtonLinkType = 'website' | 'sheet' | 'kb_article'
 
-export interface ButtonData {
+export interface ButtonData extends NodeColorFields {
   linkType?: ButtonLinkType
   /** Target URL when linkType is 'website'. */
   url?: string
@@ -97,8 +101,6 @@ export interface ButtonData {
   targetSheetId?: string
   /** Target KB page id when linkType is 'kb_article'. */
   targetKbPageId?: string
-  /** Hex color for the button's fill; unset uses the default accent color. */
-  color?: string
 }
 
 export type NodeTypeData<T extends NodeType> = T extends 'device'

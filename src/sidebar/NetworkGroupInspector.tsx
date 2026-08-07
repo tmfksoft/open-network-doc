@@ -13,6 +13,7 @@ import { networkGroupIcon } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 interface NetworkGroupInspectorProps {
   node: NetworkGroupDocNode
@@ -67,6 +68,7 @@ export default function NetworkGroupInspector({ node }: NetworkGroupInspectorPro
             </Text>
             <Text size="sm">{node.data.cidr || <Text component="span" c="dimmed">Not set</Text>}</Text>
           </div>
+          <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
           <Divider label="Description" labelPosition="left" />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -120,6 +122,12 @@ function NetworkGroupEditForm({ node, draft, setDraft }: NetworkGroupEditFormPro
         placeholder="10.0.0.0/24"
         value={draft.data.cidr ?? ''}
         onChange={(e) => setField('cidr', e.currentTarget.value)}
+      />
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor

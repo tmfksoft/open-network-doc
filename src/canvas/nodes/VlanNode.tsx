@@ -24,6 +24,8 @@ export default function VlanNode({ data, selected }: NodeProps) {
       selected={selected}
       highlighted={highlighted}
       accentColor={vlanColor(vlan.vlanId)}
+      backgroundColor={vlan.backgroundColor}
+      borderColor={vlan.borderColor}
       handlesVisible={handlesVisible}
     />
   )

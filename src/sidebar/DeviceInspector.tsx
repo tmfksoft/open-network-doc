@@ -15,7 +15,7 @@ import {
   SimpleGrid,
   Modal,
 } from '@mantine/core'
-import { IconUpload, IconX, IconPlus, IconTrash, IconWorld, IconPencil } from '@tabler/icons-react'
+import { IconUpload, IconX, IconPlus, IconTrash, IconWorld, IconPencil, IconLibraryPhoto } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { DeviceDocNode, DeviceData, DeviceType, DeviceService, ServiceProtocol } from '../fileformat/types'
 import DeviceIcon from '../canvas/nodes/DeviceIcon'
@@ -24,6 +24,8 @@ import { registerAsset } from '../assets-runtime/assetStore'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import EmbeddedImagePicker from '../components/EmbeddedImagePicker'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 import { formatServicePortRange } from '../utils/services'
 
 const DEVICE_TYPES: DeviceType[] = [
@@ -123,6 +125,7 @@ function DeviceReadOnlyView({ node }: DeviceInspectorProps) {
         <FieldRow label="Vendor" value={node.data.vendor} />
         <FieldRow label="Model" value={node.data.model} />
       </SimpleGrid>
+      <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
       <Divider label="Services" labelPosition="left" />
       {node.data.services && node.data.services.length > 0 ? (
         <Stack gap={6}>
@@ -176,6 +179,7 @@ interface DeviceEditFormProps {
 function DeviceEditForm({ node, draft, setDraft }: DeviceEditFormProps) {
   const removeNode = useDocumentStore((s) => s.removeNode)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const setField = (field: keyof DeviceData, value: DeviceData[keyof DeviceData]) => {
     setDraft((d) => ({ ...d, data: { ...d.data, [field]: value } }))
@@ -206,6 +210,14 @@ function DeviceEditForm({ node, draft, setDraft }: DeviceEditFormProps) {
           >
             Upload logo
           </Button>
+          <Button
+            size="xs"
+            variant="default"
+            leftSection={<IconLibraryPhoto size={14} />}
+            onClick={() => setPickerOpen(true)}
+          >
+            Choose existing
+          </Button>
           {draft.data.iconAssetId && (
             <ActionIcon
               variant="subtle"
@@ -227,6 +239,11 @@ function DeviceEditForm({ node, draft, setDraft }: DeviceEditFormProps) {
             e.target.value = ''
             if (file) setField('iconAssetId', registerAsset(file))
           }}
+        />
+        <EmbeddedImagePicker
+          opened={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onSelect={(assetId) => setField('iconAssetId', assetId)}
         />
       </div>
 
@@ -288,6 +305,12 @@ function DeviceEditForm({ node, draft, setDraft }: DeviceEditFormProps) {
           onChange={(e) => setField('model', e.currentTarget.value)}
         />
       </SimpleGrid>
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
+      />
       <Divider label="Services" labelPosition="left" />
       <ServicesEditor
         services={draft.data.services ?? []}

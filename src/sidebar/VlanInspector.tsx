@@ -15,6 +15,7 @@ import { VLAN_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 interface VlanInspectorProps {
   node: VlanDocNode
@@ -81,6 +82,7 @@ export default function VlanInspector({ node }: VlanInspectorProps) {
               </Text>
             </div>
           </SimpleGrid>
+          <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
           <Divider label="Description" labelPosition="left" />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -144,6 +146,12 @@ function VlanEditForm({ node, draft, setDraft }: VlanEditFormProps) {
           onChange={(e) => setField('vlanName', e.currentTarget.value)}
         />
       </SimpleGrid>
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
+      />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
         value={draft.description}

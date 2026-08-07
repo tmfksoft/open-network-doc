@@ -14,6 +14,7 @@ import { IP_RANGE_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 interface IpRangeInspectorProps {
   node: IpRangeDocNode
@@ -79,6 +80,7 @@ export default function IpRangeInspector({ node }: IpRangeInspectorProps) {
             <FieldRow label="CIDR" value={node.data.cidr} />
             <FieldRow label="Purpose" value={node.data.purpose} />
           </SimpleGrid>
+          <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
           <Divider label="Description" labelPosition="left" />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -153,6 +155,12 @@ function IpRangeEditForm({ node, draft, setDraft }: IpRangeEditFormProps) {
           onChange={(e) => setField('purpose', e.currentTarget.value)}
         />
       </SimpleGrid>
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
+      />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor
         value={draft.description}

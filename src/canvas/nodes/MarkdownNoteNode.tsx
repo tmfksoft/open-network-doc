@@ -14,7 +14,14 @@ export default function MarkdownNoteNode({ data, selected }: NodeProps) {
   const Icon = MARKDOWN_NOTE_ICON
 
   return (
-    <NodeCard node={docNode} selected={selected} highlighted={highlighted} hideHandles>
+    <NodeCard
+      node={docNode}
+      selected={selected}
+      highlighted={highlighted}
+      backgroundColor={docNode.data.backgroundColor}
+      borderColor={docNode.data.borderColor}
+      hideHandles
+    >
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Group
           gap={6}

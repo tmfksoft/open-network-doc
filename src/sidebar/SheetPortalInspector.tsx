@@ -14,6 +14,7 @@ import { SHEET_PORTAL_ICON } from '../canvas/nodes/nodeTypeMeta'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 interface SheetPortalInspectorProps {
   node: SheetPortalDocNode
@@ -72,6 +73,7 @@ export default function SheetPortalInspector({ node }: SheetPortalInspectorProps
               {targetSheet?.name || <Text component="span" c="dimmed">Not linked</Text>}
             </Text>
           </div>
+          <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
           <Divider label="Description" labelPosition="left" />
           {node.description ? (
             <MarkdownRenderer content={node.description} />
@@ -145,6 +147,12 @@ function SheetPortalEditForm({ node, draft, setDraft }: SheetPortalEditFormProps
         value={draft.data.targetNodeId ?? null}
         onChange={(value) => setField('targetNodeId', value ?? undefined)}
         clearable
+      />
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
       />
       <Divider label="Description" labelPosition="left" />
       <MarkdownEditor

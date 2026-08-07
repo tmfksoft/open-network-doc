@@ -4,15 +4,13 @@ import {
   TextInput,
   Select,
   Checkbox,
-  ColorInput,
-  ColorSwatch,
   Divider,
   Button,
   Group,
   ActionIcon,
   Text,
 } from '@mantine/core'
-import { IconUpload, IconX } from '@tabler/icons-react'
+import { IconUpload, IconX, IconLibraryPhoto } from '@tabler/icons-react'
 import { useDocumentStore } from '../store/useDocumentStore'
 import type { GroupHeaderDocNode, GroupHeaderData } from '../fileformat/types'
 import GroupHeaderIcon from '../canvas/nodes/GroupHeaderIcon'
@@ -21,16 +19,8 @@ import { registerAsset } from '../assets-runtime/assetStore'
 import MarkdownEditor from '../markdown/MarkdownEditor'
 import MarkdownRenderer from '../markdown/MarkdownRenderer'
 import InspectorHeader from './InspectorHeader'
-
-const GROUP_COLOR_SWATCHES = [
-  '#e03131',
-  '#f08c00',
-  '#2f9e44',
-  '#1971c2',
-  '#7048e8',
-  '#e64980',
-  '#495057',
-]
+import EmbeddedImagePicker from '../components/EmbeddedImagePicker'
+import { ColorFieldsReadView, ColorFieldsEditForm } from '../components/NodeColorFields'
 
 interface GroupInspectorProps {
   node: GroupHeaderDocNode
@@ -88,38 +78,7 @@ function GroupReadOnlyView({ node }: GroupInspectorProps) {
         <GroupHeaderIcon icon={node.data.icon} logoAssetId={node.data.logoAssetId} size={24} />
         <Text fw={600}>{node.label}</Text>
       </Group>
-      <Group grow>
-        <div>
-          <Text size="xs" c="dimmed">
-            Background
-          </Text>
-          {node.data.backgroundColor ? (
-            <Group gap={6} mt={2}>
-              <ColorSwatch color={node.data.backgroundColor} size={16} />
-              <Text size="sm">{node.data.backgroundColor}</Text>
-            </Group>
-          ) : (
-            <Text size="sm" c="dimmed">
-              Default
-            </Text>
-          )}
-        </div>
-        <div>
-          <Text size="xs" c="dimmed">
-            Border
-          </Text>
-          {node.data.borderColor ? (
-            <Group gap={6} mt={2}>
-              <ColorSwatch color={node.data.borderColor} size={16} />
-              <Text size="sm">{node.data.borderColor}</Text>
-            </Group>
-          ) : (
-            <Text size="sm" c="dimmed">
-              Default
-            </Text>
-          )}
-        </div>
-      </Group>
+      <ColorFieldsReadView backgroundColor={node.data.backgroundColor} borderColor={node.data.borderColor} />
       <Divider label="Description" labelPosition="left" />
       {node.description ? (
         <MarkdownRenderer content={node.description} />
@@ -145,6 +104,7 @@ interface GroupEditFormProps {
 function GroupEditForm({ node, draft, setDraft }: GroupEditFormProps) {
   const removeNode = useDocumentStore((s) => s.removeNode)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const setField = (field: keyof GroupHeaderData, value: GroupHeaderData[keyof GroupHeaderData]) => {
     setDraft((d) => ({ ...d, data: { ...d.data, [field]: value } }))
@@ -175,6 +135,14 @@ function GroupEditForm({ node, draft, setDraft }: GroupEditFormProps) {
           >
             Upload logo
           </Button>
+          <Button
+            size="xs"
+            variant="default"
+            leftSection={<IconLibraryPhoto size={14} />}
+            onClick={() => setPickerOpen(true)}
+          >
+            Choose existing
+          </Button>
           {draft.data.logoAssetId && (
             <ActionIcon
               variant="subtle"
@@ -197,6 +165,11 @@ function GroupEditForm({ node, draft, setDraft }: GroupEditFormProps) {
             if (file) setField('logoAssetId', registerAsset(file))
           }}
         />
+        <EmbeddedImagePicker
+          opened={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onSelect={(assetId) => setField('logoAssetId', assetId)}
+        />
       </div>
 
       {!draft.data.logoAssetId && (
@@ -208,22 +181,12 @@ function GroupEditForm({ node, draft, setDraft }: GroupEditFormProps) {
           clearable
         />
       )}
-      <Group grow>
-        <ColorInput
-          label="Background"
-          placeholder="Default"
-          swatches={GROUP_COLOR_SWATCHES}
-          value={draft.data.backgroundColor ?? ''}
-          onChange={(value) => setField('backgroundColor', value || undefined)}
-        />
-        <ColorInput
-          label="Border"
-          placeholder="Default"
-          swatches={GROUP_COLOR_SWATCHES}
-          value={draft.data.borderColor ?? ''}
-          onChange={(value) => setField('borderColor', value || undefined)}
-        />
-      </Group>
+      <ColorFieldsEditForm
+        backgroundColor={draft.data.backgroundColor}
+        borderColor={draft.data.borderColor}
+        onBackgroundChange={(value) => setField('backgroundColor', value)}
+        onBorderChange={(value) => setField('borderColor', value)}
+      />
       <Checkbox
         label="Show connection handles"
         description="Allows drawing edges directly to/from this group's border, when something on the sheet is selected"

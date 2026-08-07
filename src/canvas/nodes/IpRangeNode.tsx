@@ -18,6 +18,8 @@ export default function IpRangeNode({ data, selected }: NodeProps) {
       label={docNode.label}
       subtext={subtext}
       selected={selected}
+      backgroundColor={range.backgroundColor}
+      borderColor={range.borderColor}
       handlesVisible={handlesVisible}
     />
   )

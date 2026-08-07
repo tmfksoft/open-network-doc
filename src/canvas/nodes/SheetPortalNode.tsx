@@ -22,7 +22,13 @@ export default function SheetPortalNode({ data, selected }: NodeProps) {
   }
 
   return (
-    <NodeCard node={docNode} selected={selected} handlesVisible={handlesVisible}>
+    <NodeCard
+      node={docNode}
+      selected={selected}
+      backgroundColor={portal.backgroundColor}
+      borderColor={portal.borderColor}
+      handlesVisible={handlesVisible}
+    >
       <Stack gap={4} align="center" justify="center" h="100%">
         <ThemeIcon variant="light" size={40} radius="md">
           <Icon size={24} />

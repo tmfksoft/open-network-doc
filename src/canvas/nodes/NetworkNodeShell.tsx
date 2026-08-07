@@ -17,6 +17,8 @@ interface NetworkNodeShellProps {
   selected?: boolean
   highlighted?: boolean
   accentColor?: string
+  backgroundColor?: string
+  borderColor?: string
   /** When set, replaces the icon with this uploaded logo, height-capped but free to size its own width so a wide logo isn't squashed into a square. */
   logoAssetId?: string
   handlesVisible?: boolean
@@ -31,6 +33,8 @@ export function NetworkNodeShell({
   selected,
   highlighted,
   accentColor,
+  backgroundColor,
+  borderColor,
   logoAssetId,
   handlesVisible,
 }: NetworkNodeShellProps) {
@@ -43,6 +47,8 @@ export function NetworkNodeShell({
       selected={selected}
       highlighted={highlighted}
       accentColor={accentColor}
+      backgroundColor={backgroundColor}
+      borderColor={borderColor}
       handlesVisible={handlesVisible}
     >
       {compact ? (

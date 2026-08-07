@@ -20,6 +20,10 @@ interface NodeCardProps {
   highlighted?: boolean
   /** Mantine color name (e.g. from VLAN color coding) tinting the border when not selected. */
   accentColor?: string
+  /** Custom fill; unset uses the default theme background. */
+  backgroundColor?: string
+  /** Custom border color when not selected/highlighted/VLAN-accented; unset uses the default theme border. */
+  borderColor?: string
   /** Node types with no connection points at all (e.g. markdown notes) — still resizable, just not linkable. */
   hideHandles?: boolean
   /** Global: handles only render once something on the sheet is selected. */
@@ -28,14 +32,24 @@ interface NodeCardProps {
 }
 
 /** Shared Paper + connection-handle + hover-summary wrapper for all connectable canvas node types. */
-export function NodeCard({ node, selected, highlighted, accentColor, hideHandles, handlesVisible, children }: NodeCardProps) {
-  const borderColor = selected
+export function NodeCard({
+  node,
+  selected,
+  highlighted,
+  accentColor,
+  backgroundColor,
+  borderColor,
+  hideHandles,
+  handlesVisible,
+  children,
+}: NodeCardProps) {
+  const resolvedBorderColor = selected
     ? 'var(--mantine-color-blue-6)'
     : highlighted
       ? HIGHLIGHT_COLOR
       : accentColor
         ? `var(--mantine-color-${accentColor}-6)`
-        : undefined
+        : borderColor
 
   const width = node.width ?? NODE_CARD_DEFAULT_WIDTH
   const height = node.height ?? NODE_CARD_DEFAULT_HEIGHT
@@ -50,7 +64,8 @@ export function NodeCard({ node, selected, highlighted, accentColor, hideHandles
         style={{
           width,
           height,
-          borderColor,
+          background: backgroundColor,
+          borderColor: resolvedBorderColor,
           // Fixed width (never toggling 1px -> 2px on selection) so the
           // inner content box doesn't shrink by a couple of px when a
           // node gets selected — selection is conveyed by color + shadow
